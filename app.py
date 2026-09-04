@@ -4,15 +4,16 @@ from datetime import datetime
 
 import pandas as pd
 import streamlit as st
+
 from PIL import Image, ImageOps
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 from huggingface_hub import InferenceClient
 
 
-# ============================================================
-# PAGE CONFIGURATION
-# ============================================================
+# =========================================================
+# PAGE CONFIG
+# =========================================================
 
 st.set_page_config(
     page_title="PETORA | Pets Beyond Borders",
@@ -22,38 +23,18 @@ st.set_page_config(
 )
 
 
-# ============================================================
+# =========================================================
 # PROJECT PATHS
-# ============================================================
+# =========================================================
 
-BASE_DIR = os.path.dirname(
-    os.path.abspath(__file__)
-)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-DATA_DIR = os.path.join(
-    BASE_DIR,
-    "data"
-)
+DATA_DIR = os.path.join(BASE_DIR, "data")
+IMAGE_DIR = os.path.join(BASE_DIR, "images")
 
-IMAGE_DIR = os.path.join(
-    BASE_DIR,
-    "images"
-)
-
-PUPPY_FILE = os.path.join(
-    DATA_DIR,
-    "puppies.csv"
-)
-
-KNOWLEDGE_FILE = os.path.join(
-    DATA_DIR,
-    "info.text"
-)
-
-ENQUIRY_FILE = os.path.join(
-    DATA_DIR,
-    "enquiries.csv"
-)
+PUPPY_FILE = os.path.join(DATA_DIR, "puppies.csv")
+KNOWLEDGE_FILE = os.path.join(DATA_DIR, "info.text")
+ENQUIRY_FILE = os.path.join(DATA_DIR, "enquiries.csv")
 
 LOGO_FILE = os.path.join(
     IMAGE_DIR,
@@ -61,70 +42,312 @@ LOGO_FILE = os.path.join(
 )
 
 
-# ============================================================
+# =========================================================
 # CUSTOM CSS
-# ============================================================
+# =========================================================
 
 st.markdown(
     """
     <style>
 
-    .petora-header {
-        text-align: center;
-        padding: 10px 0 5px 0;
+    /* =========================
+       GLOBAL
+       ========================= */
+
+    .stApp {
+        background: #fbfaf5;
     }
 
-    .petora-logo {
-        max-width: 360px;
-        margin: auto;
+    .block-container {
+        max-width: 1400px;
+        padding-top: 1rem;
+        padding-bottom: 2rem;
     }
 
-    .petora-tagline {
-        text-align: center;
-        font-size: 18px;
-        color: #8a6417;
-        font-weight: 600;
-        margin-top: -5px;
-        margin-bottom: 20px;
-    }
+    /* =========================
+       BRAND HEADER
+       ========================= */
 
-    .hero-box {
+    .brand-header {
         background: linear-gradient(
             135deg,
-            #f6f2e7,
-            #ffffff
+            #f4f0e3,
+            #ffffff,
+            #edf4eb
         );
-        padding: 28px;
-        border-radius: 18px;
-        border: 1px solid #e5dfcf;
+        border-radius: 22px;
+        padding: 15px 20px 10px 20px;
+        border: 1px solid #ddd8c8;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.05);
+        text-align: center;
+        margin-bottom: 12px;
+    }
+
+    .brand-logo {
+        display: block;
+        margin: 0 auto;
+        max-width: 430px;
+    }
+
+    .brand-subtitle {
+        color: #a07a24;
+        font-size: 17px;
+        font-weight: 700;
+        letter-spacing: 1px;
+        margin-top: 2px;
+    }
+
+    .brand-tagline {
+        color: #214d34;
+        font-size: 16px;
+        font-style: italic;
+        margin-top: 3px;
+    }
+
+    /* =========================
+       NAVIGATION
+       ========================= */
+
+    .nav-bar {
+        background: #0f4429;
+        color: white;
+        border-radius: 15px;
+        padding: 14px 10px;
+        text-align: center;
+        font-weight: 600;
+        margin: 10px 0 22px 0;
+        box-shadow: 0 5px 14px rgba(15,68,41,0.18);
+    }
+
+    /* =========================
+       HERO
+       ========================= */
+
+    .hero {
+        background:
+            linear-gradient(
+                110deg,
+                #f8f4e9 0%,
+                #ffffff 55%,
+                #eaf2e7 100%
+            );
+        border: 1px solid #ded8c8;
+        border-radius: 22px;
+        padding: 34px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.06);
         margin-bottom: 25px;
+    }
+
+    .hero-kicker {
+        color: #a07a24;
+        font-size: 15px;
+        font-weight: 800;
+        letter-spacing: 2px;
+        text-transform: uppercase;
     }
 
     .hero-title {
-        font-size: 34px;
-        font-weight: 700;
-        color: #123b25;
+        color: #123d27;
+        font-size: 42px;
+        font-weight: 800;
+        margin-top: 6px;
+        margin-bottom: 6px;
     }
 
     .hero-text {
+        color: #505050;
         font-size: 18px;
-        color: #555;
+        line-height: 1.6;
+        max-width: 900px;
     }
 
-    .category-bar {
-        text-align: center;
-        padding: 12px;
-        border-radius: 12px;
-        background: #123b25;
-        color: white;
-        font-size: 15px;
-        font-weight: 600;
-        margin-bottom: 25px;
-    }
+    /* =========================
+       FEATURES
+       ========================= */
 
     .feature-box {
+        background: white;
+        border-radius: 15px;
+        border: 1px solid #e2dfd6;
+        padding: 16px;
         text-align: center;
-        padding: 15px;
+        height: 100%;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+    }
+
+    .feature-icon {
+        font-size: 30px;
+    }
+
+    .feature-title {
+        font-weight: 700;
+        color: #173f29;
+        margin-top: 4px;
+    }
+
+    .feature-text {
+        color: #777;
+        font-size: 14px;
+    }
+
+    /* =========================
+       SECTION TITLES
+       ========================= */
+
+    .section-title {
+        color: #173f29;
+        font-size: 29px;
+        font-weight: 800;
+        margin: 12px 0 4px 0;
+    }
+
+    .section-subtitle {
+        color: #777;
+        margin-bottom: 16px;
+    }
+
+    /* =========================
+       PUPPY CARDS
+       ========================= */
+
+    .puppy-card {
+        background: white;
+        border-radius: 18px;
+        border: 1px solid #dedbd1;
+        overflow: hidden;
+        box-shadow: 0 7px 20px rgba(0,0,0,0.06);
+        margin-bottom: 16px;
+    }
+
+    .puppy-details {
+        padding: 16px 16px 18px 16px;
+    }
+
+    .puppy-breed {
+        color: #163c26;
+        font-size: 22px;
+        font-weight: 800;
+        margin-bottom: 8px;
+    }
+
+    .puppy-id {
+        color: #777;
+        font-size: 14px;
+        margin-bottom: 10px;
+    }
+
+    .puppy-price {
+        color: #176334;
+        font-size: 26px;
+        font-weight: 800;
+        margin: 10px 0;
+    }
+
+    .available-badge {
+        display: inline-block;
+        background: #e5f7e9;
+        color: #1b7b3b;
+        border-radius: 50px;
+        padding: 6px 11px;
+        font-weight: 700;
+        font-size: 13px;
+    }
+
+    /* =========================
+       AI CARD
+       ========================= */
+
+    .ai-panel {
+        background: white;
+        border: 1px solid #dcd8cb;
+        border-radius: 20px;
+        padding: 20px;
+        box-shadow: 0 7px 20px rgba(0,0,0,0.06);
+    }
+
+    .ai-header {
+        color: #123d27;
+        font-size: 24px;
+        font-weight: 800;
+    }
+
+    .ai-subtitle {
+        color: #777;
+        font-size: 14px;
+        margin-bottom: 12px;
+    }
+
+    /* =========================
+       TRUST BAR
+       ========================= */
+
+    .trust-box {
+        background: #f0f5ed;
+        border: 1px solid #d9e3d3;
+        border-radius: 18px;
+        padding: 18px 10px;
+        text-align: center;
+        margin-top: 22px;
+    }
+
+    .trust-title {
+        color: #173f29;
+        font-weight: 800;
+    }
+
+    .trust-text {
+        color: #666;
+        font-size: 14px;
+    }
+
+    /* =========================
+       FOOTER
+       ========================= */
+
+    .footer {
+        background: #0f4429;
+        color: white;
+        border-radius: 18px;
+        padding: 28px;
+        text-align: center;
+        margin-top: 30px;
+    }
+
+    .footer-brand {
+        font-size: 28px;
+        font-weight: 800;
+    }
+
+    .footer-tagline {
+        color: #e4bf63;
+        font-size: 17px;
+        font-style: italic;
+        margin-top: 5px;
+    }
+
+    .footer-links {
+        margin-top: 10px;
+        color: #dbe8de;
+        font-size: 14px;
+    }
+
+    /* =========================
+       STREAMLIT BUTTONS
+       ========================= */
+
+    .stButton > button {
+        width: 100%;
+        border-radius: 10px;
+        border: none;
+        background: #b98b2f;
+        color: white;
+        font-weight: 700;
+        min-height: 42px;
+    }
+
+    .stButton > button:hover {
+        background: #986f20;
+        color: white;
     }
 
     </style>
@@ -133,16 +356,16 @@ st.markdown(
 )
 
 
-# ============================================================
-# PETORA BRAND HEADER
-# ============================================================
+# =========================================================
+# LOGO
+# =========================================================
 
 st.markdown(
-    '<div class="petora-header">',
+    '<div class="brand-header">',
     unsafe_allow_html=True
 )
 
-if os.path.isfile(LOGO_FILE):
+if os.path.exists(LOGO_FILE):
 
     logo = Image.open(
         LOGO_FILE
@@ -150,60 +373,92 @@ if os.path.isfile(LOGO_FILE):
 
     st.image(
         logo,
-        width=360
+        width=430
     )
 
 else:
 
-    st.title(
-        "PETORA™"
+    st.markdown(
+        """
+        <div style="
+            font-size:44px;
+            font-weight:800;
+            color:#123d27;
+        ">
+        PETORA™
+        </div>
+        """,
+        unsafe_allow_html=True
     )
 
 st.markdown(
-    '<div class="petora-tagline">'
-    'PETS BEYOND BORDERS • More Pets. A Wilder World.'
+    """
+    <div class="brand-subtitle">
+    PETS BEYOND BORDERS
+    </div>
+
+    <div class="brand-tagline">
+    More Pets. A Wilder World.
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+st.markdown(
     '</div>',
     unsafe_allow_html=True
 )
 
 
-# ============================================================
+# =========================================================
 # NAVIGATION
-# ============================================================
+# =========================================================
 
 st.markdown(
     """
-    <div class="category-bar">
-    🏠 Home &nbsp;&nbsp; | &nbsp;&nbsp;
-    🐶 Dogs &nbsp;&nbsp; | &nbsp;&nbsp;
-    🐱 Cats &nbsp;&nbsp; | &nbsp;&nbsp;
-    🐟 Aquatics &nbsp;&nbsp; | &nbsp;&nbsp;
-    🐍 Reptiles &nbsp;&nbsp; | &nbsp;&nbsp;
-    🦜 Exotic Pets &nbsp;&nbsp; | &nbsp;&nbsp;
-    🤖 AI Assistant
+    <div class="nav-bar">
+        🏠 Home
+        &nbsp;&nbsp; | &nbsp;&nbsp;
+        🐶 Dogs
+        &nbsp;&nbsp; | &nbsp;&nbsp;
+        🐱 Cats
+        &nbsp;&nbsp; | &nbsp;&nbsp;
+        🐟 Aquatics
+        &nbsp;&nbsp; | &nbsp;&nbsp;
+        🐍 Reptiles
+        &nbsp;&nbsp; | &nbsp;&nbsp;
+        🦜 Exotic Pets
+        &nbsp;&nbsp; | &nbsp;&nbsp;
+        🤖 AI Assistant
+        &nbsp;&nbsp; | &nbsp;&nbsp;
+        ℹ️ About
     </div>
     """,
     unsafe_allow_html=True
 )
 
 
-# ============================================================
-# HERO SECTION
-# ============================================================
+# =========================================================
+# HERO
+# =========================================================
 
 st.markdown(
     """
-    <div class="hero-box">
+    <div class="hero">
 
-    <div class="hero-title">
-    Welcome to PETORA
-    </div>
+        <div class="hero-kicker">
+        Welcome to PETORA
+        </div>
 
-    <div class="hero-text">
-    Your AI-powered pet marketplace and pet companion.
-    Find puppies, explore future pet categories, check
-    availability, ask questions and send enquiries.
-    </div>
+        <div class="hero-title">
+        Your Complete Pet Companion
+        </div>
+
+        <div class="hero-text">
+        Find puppies, explore pets, check availability,
+        ask PETORA AI questions and start your pet journey
+        with confidence.
+        </div>
 
     </div>
     """,
@@ -211,86 +466,56 @@ st.markdown(
 )
 
 
-# ============================================================
-# FEATURE ROW
-# ============================================================
+# =========================================================
+# FEATURE BOXES
+# =========================================================
 
-feature_columns = st.columns(4)
+feature_cols = st.columns(4)
 
-with feature_columns[0]:
+features = [
+    ("🔎", "Browse", "Explore available pets."),
+    ("🤖", "Ask PETORA AI", "Get instant answers."),
+    ("📞", "Enquire", "Contact us about a pet."),
+    ("❤️", "Pet Care", "Healthy and responsible pet ownership.")
+]
 
-    st.markdown(
-        """
-        <div class="feature-box">
-        <h3>🐾 Browse</h3>
-        <p>Explore available pets.</p>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+for col, feature in zip(
+    feature_cols,
+    features
+):
 
-with feature_columns[1]:
+    icon, title, text = feature
 
-    st.markdown(
-        """
-        <div class="feature-box">
-        <h3>🤖 Ask AI</h3>
-        <p>Get instant pet information.</p>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+    with col:
 
-with feature_columns[2]:
+        st.markdown(
+            f"""
+            <div class="feature-box">
 
-    st.markdown(
-        """
-        <div class="feature-box">
-        <h3>📞 Enquire</h3>
-        <p>Send your interest directly.</p>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+                <div class="feature-icon">
+                {icon}
+                </div>
 
-with feature_columns[3]:
+                <div class="feature-title">
+                {title}
+                </div>
 
-    st.markdown(
-        """
-        <div class="feature-box">
-        <h3>❤️ Responsible</h3>
-        <p>Pets, care and guidance.</p>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+                <div class="feature-text">
+                {text}
+                </div>
+
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
 
-st.divider()
+st.markdown("<br>", unsafe_allow_html=True)
 
 
-# ============================================================
-# HUGGING FACE CLIENT
-# ============================================================
-
-try:
-
-    HF_TOKEN = st.secrets["HF_TOKEN"]
-
-    hf_client = InferenceClient(
-        api_key=HF_TOKEN,
-        provider="auto"
-    )
-
-except Exception:
-
-    HF_TOKEN = None
-    hf_client = None
-
-
-# ============================================================
+# =========================================================
 # EMBEDDING MODEL
-# ============================================================
+# =========================================================
 
 @st.cache_resource
 def load_embedding_model():
@@ -303,9 +528,9 @@ def load_embedding_model():
 model = load_embedding_model()
 
 
-# ============================================================
-# LOAD KNOWLEDGE BASE
-# ============================================================
+# =========================================================
+# KNOWLEDGE BASE
+# =========================================================
 
 @st.cache_data
 def load_knowledge():
@@ -347,9 +572,9 @@ else:
     knowledge_embeddings = None
 
 
-# ============================================================
-# LOAD PUPPY INVENTORY
-# ============================================================
+# =========================================================
+# INVENTORY
+# =========================================================
 
 @st.cache_data
 def load_inventory():
@@ -371,15 +596,15 @@ inventory = load_inventory()
 if inventory.empty:
 
     st.error(
-        "Puppy inventory could not be loaded."
+        "Unable to load puppy inventory."
     )
 
     st.stop()
 
 
-# ============================================================
+# =========================================================
 # REQUIRED COLUMNS
-# ============================================================
+# =========================================================
 
 required_columns = [
     "puppy_id",
@@ -401,9 +626,9 @@ for column in required_columns:
         inventory[column] = ""
 
 
-# ============================================================
-# CLEAN INVENTORY
-# ============================================================
+# =========================================================
+# CLEAN DATA
+# =========================================================
 
 for column in [
     "puppy_id",
@@ -435,9 +660,9 @@ inventory["age_weeks"] = pd.to_numeric(
 ).fillna(0)
 
 
-# ============================================================
-# ENQUIRY FILE
-# ============================================================
+# =========================================================
+# ENQUIRY STORAGE
+# =========================================================
 
 def ensure_enquiry_file():
 
@@ -464,10 +689,6 @@ def ensure_enquiry_file():
 ensure_enquiry_file()
 
 
-# ============================================================
-# SAVE ENQUIRY
-# ============================================================
-
 def save_enquiry(
     name,
     phone,
@@ -476,7 +697,7 @@ def save_enquiry(
     message
 ):
 
-    new_row = pd.DataFrame(
+    row = pd.DataFrame(
         [
             {
                 "date": datetime.now().strftime(
@@ -492,7 +713,7 @@ def save_enquiry(
         ]
     )
 
-    new_row.to_csv(
+    row.to_csv(
         ENQUIRY_FILE,
         mode="a",
         header=False,
@@ -500,9 +721,9 @@ def save_enquiry(
     )
 
 
-# ============================================================
-# FIND PUPPY ID
-# ============================================================
+# =========================================================
+# UTILITY FUNCTIONS
+# =========================================================
 
 def find_puppy_id(text):
 
@@ -518,19 +739,13 @@ def find_puppy_id(text):
     return ""
 
 
-# ============================================================
-# FIND PUPPY
-# ============================================================
-
-def find_puppy(
-    puppy_id
-):
+def find_puppy(puppy_id):
 
     if not puppy_id:
 
         return None
 
-    matches = inventory[
+    result = inventory[
         inventory["puppy_id"]
         .str.upper()
         .eq(
@@ -538,20 +753,14 @@ def find_puppy(
         )
     ]
 
-    if len(matches) > 0:
+    if len(result):
 
-        return matches.iloc[0]
+        return result.iloc[0]
 
     return None
 
 
-# ============================================================
-# BUYING INTENT
-# ============================================================
-
-def detect_buying_intent(
-    text
-):
+def detect_buying_intent(text):
 
     keywords = [
         "interested",
@@ -576,9 +785,9 @@ def detect_buying_intent(
     )
 
 
-# ============================================================
+# =========================================================
 # SESSION STATE
-# ============================================================
+# =========================================================
 
 if "messages" not in st.session_state:
 
@@ -590,14 +799,9 @@ if "lead_request" not in st.session_state:
     st.session_state.lead_request = None
 
 
-# ============================================================
-# AVAILABLE PUPPIES
-# ============================================================
-
-st.subheader(
-    "🐾 Available Puppies"
-)
-
+# =========================================================
+# MAIN CONTENT
+# =========================================================
 
 available = inventory[
     inventory["status"]
@@ -606,39 +810,63 @@ available = inventory[
 ].copy()
 
 
-if len(available) == 0:
+st.markdown(
+    '<div class="section-title">🐾 Available Puppies</div>',
+    unsafe_allow_html=True
+)
 
-    st.info(
-        "No puppies are currently available."
-    )
+st.markdown(
+    '<div class="section-subtitle">'
+    'Browse our current puppy inventory and contact us directly.'
+    '</div>',
+    unsafe_allow_html=True
+)
 
-else:
 
-    columns = st.columns(3)
+# =========================================================
+# PUPPY + AI LAYOUT
+# =========================================================
 
-    for i, (_, puppy) in enumerate(
-        available.iterrows()
-    ):
+left_column, right_column = st.columns(
+    [1.65, 1],
+    gap="large"
+)
 
-        with columns[
-            i % 3
-        ]:
 
-            # ================================================
-            # PUPPY IMAGE
-            # ================================================
+# =========================================================
+# LEFT: PUPPIES
+# =========================================================
 
-            photo_name = str(
-                puppy["photo"]
-            ).strip()
+with left_column:
 
-            photo_name = photo_name.lstrip(
-                "/"
-            )
+    if available.empty:
 
-            image_path = ""
+        st.info(
+            "No puppies are currently available."
+        )
 
-            if photo_name:
+    else:
+
+        puppy_columns = st.columns(
+            min(3, len(available))
+        )
+
+        for i, (_, puppy) in enumerate(
+            available.iterrows()
+        ):
+
+            with puppy_columns[
+                i % len(puppy_columns)
+            ]:
+
+                photo_name = str(
+                    puppy["photo"]
+                ).strip()
+
+                photo_name = photo_name.lstrip(
+                    "/"
+                )
+
 
                 image_path = os.path.join(
                     BASE_DIR,
@@ -646,334 +874,323 @@ else:
                 )
 
 
-            if (
-                image_path
-                and os.path.isfile(
-                    image_path
-                )
-            ):
-
-                try:
-
-                    image = Image.open(
+                if (
+                    photo_name
+                    and os.path.isfile(
                         image_path
-                    ).convert(
-                        "RGB"
                     )
+                ):
 
-                    image = ImageOps.fit(
-                        image,
+                    try:
+
+                        image = Image.open(
+                            image_path
+                        ).convert(
+                            "RGB"
+                        )
+
+                        image = ImageOps.fit(
+                            image,
+                            (600, 450),
+                            method=Image.Resampling.LANCZOS,
+                            centering=(0.5, 0.5)
+                        )
+
+                        st.image(
+                            image,
+                            width="stretch"
+                        )
+
+                    except Exception:
+
+                        st.info(
+                            "Image unavailable."
+                        )
+
+                else:
+
+                    placeholder = Image.new(
+                        "RGB",
                         (600, 450),
-                        method=Image.Resampling.LANCZOS,
-                        centering=(0.5, 0.5)
+                        "#e9e9e9"
                     )
 
                     st.image(
-                        image,
+                        placeholder,
                         width="stretch"
                     )
 
-                except Exception:
 
-                    st.warning(
-                        "Unable to load image."
-                    )
+                st.markdown(
+                    f"""
+                    <div class="puppy-details">
 
-            else:
+                        <div class="puppy-breed">
+                        🐶 {puppy['breed']}
+                        </div>
 
-                placeholder = Image.new(
-                    "RGB",
-                    (600, 450),
-                    "lightgray"
+                        <div class="puppy-id">
+                        Puppy ID: {puppy['puppy_id']}
+                        </div>
+
+                    </div>
+                    """,
+                    unsafe_allow_html=True
                 )
 
-                st.image(
-                    placeholder,
-                    width="stretch"
+
+                st.write(
+                    f"**Gender:** {puppy['gender']}"
+                )
+
+                st.write(
+                    f"**Age:** "
+                    f"{int(puppy['age_weeks'])} weeks"
+                )
+
+                st.markdown(
+                    f"""
+                    <div class="puppy-price">
+                    ₹{puppy['price']:,.0f}
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+
+                st.markdown(
+                    """
+                    <span class="available-badge">
+                    ✓ Available
+                    </span>
+                    """,
+                    unsafe_allow_html=True
+                )
+
+                st.write(
+                    f"Vaccinated: "
+                    f"{puppy['vaccinated']}"
+                )
+
+                st.write(
+                    f"Location: "
+                    f"{puppy['location']}"
                 )
 
 
-            # ================================================
-            # PUPPY DETAILS
-            # ================================================
+                if st.button(
+                    "📞 I'm Interested",
+                    key=f"interest_{puppy['puppy_id']}"
+                ):
 
-            st.subheader(
-                f"🐶 {puppy['breed']}"
-            )
+                    st.session_state.lead_request = {
+                        "puppy_id": str(
+                            puppy["puppy_id"]
+                        ),
+                        "message": (
+                            "Customer is interested in "
+                            f"{puppy['puppy_id']}"
+                        )
+                    }
 
-            st.write(
-                f"**Puppy ID:** "
-                f"{puppy['puppy_id']}"
-            )
-
-            st.write(
-                f"**Gender:** "
-                f"{puppy['gender']}"
-            )
-
-            st.write(
-                f"**Age:** "
-                f"{int(puppy['age_weeks'])} weeks"
-            )
-
-            st.markdown(
-                f"### ₹{puppy['price']:,.0f}"
-            )
-
-            st.success(
-                "✅ Available"
-            )
-
-            st.write(
-                f"Vaccinated: "
-                f"{puppy['vaccinated']}"
-            )
-
-            st.write(
-                f"Location: "
-                f"{puppy['location']}"
-            )
+                    st.rerun()
 
 
-            # ================================================
-            # INTEREST BUTTON
-            # ================================================
+# =========================================================
+# RIGHT: AI ASSISTANT
+# =========================================================
 
-            if st.button(
-                "📞 I'm Interested",
-                key=(
-                    f"interest_"
-                    f"{puppy['puppy_id']}"
-                )
-            ):
+with right_column:
 
-                st.session_state.lead_request = {
-                    "puppy_id": str(
-                        puppy["puppy_id"]
-                    ),
-                    "message": (
-                        "Customer is interested in "
-                        f"{puppy['puppy_id']}"
-                    )
-                }
+    st.markdown(
+        """
+        <div class="ai-panel">
 
-                st.rerun()
+            <div class="ai-header">
+            🤖 PETORA AI Assistant
+            </div>
 
+            <div class="ai-subtitle">
+            Ask about puppies, prices, availability,
+            breeds or pet care.
+            </div>
 
-st.divider()
-
-
-# ============================================================
-# CHAT SECTION
-# ============================================================
-
-st.subheader(
-    "🤖 Ask PETORA AI"
-)
-
-st.caption(
-    "Ask about puppies, prices, availability, "
-    "breeds or our pet business."
-)
-
-
-# ============================================================
-# DISPLAY CHAT HISTORY
-# ============================================================
-
-for message in st.session_state.messages:
-
-    with st.chat_message(
-        message["role"]
-    ):
-
-        st.markdown(
-            message["content"]
-        )
-
-
-# ============================================================
-# CHAT INPUT
-# ============================================================
-
-query = st.chat_input(
-    "Ask about puppies, prices or availability..."
-)
-
-
-if query:
-
-    st.session_state.messages.append(
-        {
-            "role": "user",
-            "content": query
-        }
-    )
-
-    with st.chat_message(
-        "user"
-    ):
-
-        st.write(
-            query
-        )
-
-
-    # ========================================================
-    # PUPPY ID LOOKUP
-    # ========================================================
-
-    puppy_id = find_puppy_id(
-        query
-    )
-
-    puppy = find_puppy(
-        puppy_id
+        </div>
+        """,
+        unsafe_allow_html=True
     )
 
 
-    # ========================================================
-    # BUYING INTENT
-    # ========================================================
+    # ---------------------------------------------
+    # CHAT HISTORY
+    # ---------------------------------------------
 
-    if detect_buying_intent(
-        query
-    ):
-
-        st.session_state.lead_request = {
-            "puppy_id": puppy_id,
-            "message": query
-        }
-
-
-    # ========================================================
-    # EXACT PUPPY ANSWER
-    # ========================================================
-
-    if (
-        puppy_id
-        and puppy is not None
-    ):
-
-        status = str(
-            puppy["status"]
-        )
-
-
-        if status.lower() == "available":
-
-            answer = (
-                f"**{puppy_id} is available.**\n\n"
-                f"Breed: {puppy['breed']}\n\n"
-                f"Gender: {puppy['gender']}\n\n"
-                f"Age: {int(puppy['age_weeks'])} weeks\n\n"
-                f"Price: ₹{puppy['price']:,.0f}\n\n"
-                f"Vaccinated: {puppy['vaccinated']}\n\n"
-                f"Location: {puppy['location']}"
-            )
-
-        else:
-
-            answer = (
-                f"**{puppy_id}** is currently "
-                f"{status.lower()}."
-            )
-
+    for message in st.session_state.messages:
 
         with st.chat_message(
-            "assistant"
+            message["role"]
         ):
 
             st.markdown(
-                answer
+                message["content"]
             )
 
 
+    # ---------------------------------------------
+    # CHAT INPUT
+    # ---------------------------------------------
+
+    query = st.chat_input(
+        "Ask PETORA AI..."
+    )
+
+
+    if query:
+
         st.session_state.messages.append(
             {
-                "role": "assistant",
-                "content": answer
+                "role": "user",
+                "content": query
             }
         )
 
 
-    else:
-
-        # ====================================================
-        # BUILD CONTEXT
-        # ====================================================
-
-        inventory_keywords = [
-            "price",
-            "puppy",
-            "puppies",
-            "available",
-            "availability",
-            "breed",
-            "male",
-            "female",
-            "vaccinated",
-            "sold",
-            "age",
-            "inventory",
-            "location"
-        ]
-
-
-        if any(
-            word in query.lower()
-            for word in inventory_keywords
+        with st.chat_message(
+            "user"
         ):
 
-            context = (
-                "Current puppy inventory:\n\n"
-                + inventory.to_string(
-                    index=False
+            st.write(
+                query
+            )
+
+
+        puppy_id = find_puppy_id(
+            query
+        )
+
+        puppy = find_puppy(
+            puppy_id
+        )
+
+
+        if detect_buying_intent(
+            query
+        ):
+
+            st.session_state.lead_request = {
+                "puppy_id": puppy_id,
+                "message": query
+            }
+
+
+        # -----------------------------------------
+        # EXACT PUPPY LOOKUP
+        # -----------------------------------------
+
+        if (
+            puppy_id
+            and puppy is not None
+        ):
+
+            if str(
+                puppy["status"]
+            ).lower() == "available":
+
+                answer = (
+                    f"**{puppy_id} is available.**\n\n"
+                    f"Breed: {puppy['breed']}\n\n"
+                    f"Gender: {puppy['gender']}\n\n"
+                    f"Age: {int(puppy['age_weeks'])} weeks\n\n"
+                    f"Price: ₹{puppy['price']:,.0f}\n\n"
+                    f"Vaccinated: {puppy['vaccinated']}\n\n"
+                    f"Location: {puppy['location']}"
                 )
-            )
 
-        elif knowledge_embeddings is not None:
+            else:
 
-            query_embedding = model.encode(
-                [query]
-            )
+                answer = (
+                    f"**{puppy_id}** is currently "
+                    f"{puppy['status'].lower()}."
+                )
 
-            similarities = cosine_similarity(
-                query_embedding,
-                knowledge_embeddings
-            )[0]
-
-            top_indices = similarities.argsort()[
-                -3:
-            ][::-1]
-
-            context = "\n".join(
-                chunks[index]
-                for index in top_indices
-            )
 
         else:
 
-            context = ""
+            # -----------------------------------------
+            # CONTEXT
+            # -----------------------------------------
+
+            keywords = [
+                "price",
+                "puppy",
+                "puppies",
+                "available",
+                "availability",
+                "breed",
+                "male",
+                "female",
+                "vaccinated",
+                "sold",
+                "age",
+                "inventory",
+                "location"
+            ]
 
 
-        # ====================================================
-        # HUGGING FACE RESPONSE
-        # ====================================================
+            if any(
+                word in query.lower()
+                for word in keywords
+            ):
 
-        if hf_client is None:
+                context = (
+                    "Current puppy inventory:\n\n"
+                    + inventory.to_string(
+                        index=False
+                    )
+                )
 
-            answer = (
-                "The PETORA AI service is not configured. "
-                "Please check the HF_TOKEN in Streamlit Secrets."
-            )
+            elif knowledge_embeddings is not None:
 
-        else:
+                query_embedding = model.encode(
+                    [query]
+                )
+
+                similarities = cosine_similarity(
+                    query_embedding,
+                    knowledge_embeddings
+                )[0]
+
+                top_indices = similarities.argsort()[
+                    -3:
+                ][::-1]
+
+                context = "\n".join(
+                    chunks[index]
+                    for index in top_indices
+                )
+
+            else:
+
+                context = ""
+
+
+            # -----------------------------------------
+            # HUGGING FACE
+            # -----------------------------------------
 
             try:
 
+                hf_token = st.secrets[
+                    "HF_TOKEN"
+                ]
+
+                client = InferenceClient(
+                    api_key=hf_token,
+                    provider="auto"
+                )
+
+
                 completion = (
-                    hf_client.chat.completions.create(
+                    client.chat.completions.create(
                         model=(
                             "Qwen/"
                             "Qwen2.5-7B-Instruct"
@@ -982,17 +1199,18 @@ if query:
                             {
                                 "role": "system",
                                 "content": (
-                                    "You are PETORA AI Assistant, "
-                                    "a helpful assistant for a pet "
-                                    "business. Use ONLY the provided "
-                                    "context. Never invent prices, "
-                                    "availability, breeds, ages, "
-                                    "vaccination records or other "
-                                    "business facts. If information "
-                                    "is not available, say: "
-                                    "'I don't know based on the "
-                                    "available information.' "
-                                    "Keep answers clear and helpful."
+                                    "You are PETORA AI "
+                                    "Assistant. Use ONLY "
+                                    "the provided context. "
+                                    "Never invent prices, "
+                                    "availability, breeds, "
+                                    "ages or vaccination "
+                                    "records. If the "
+                                    "information is not "
+                                    "available, say: "
+                                    "'I don't know based "
+                                    "on the available "
+                                    "information.'"
                                 )
                             },
                             {
@@ -1008,10 +1226,11 @@ Question:
 """
                             }
                         ],
-                        max_tokens=300,
+                        max_tokens=250,
                         temperature=0.2
                     )
                 )
+
 
                 answer = (
                     completion
@@ -1020,11 +1239,13 @@ Question:
                     .content
                 )
 
+
             except Exception:
 
                 answer = (
-                    "Sorry, PETORA AI is temporarily "
-                    "unavailable. Please try again."
+                    "PETORA AI is temporarily "
+                    "unavailable. Please try again "
+                    "in a moment."
                 )
 
 
@@ -1045,16 +1266,19 @@ Question:
         )
 
 
-# ============================================================
+# =========================================================
 # LEAD CAPTURE
-# ============================================================
+# =========================================================
 
 if st.session_state.lead_request:
 
     st.divider()
 
-    st.subheader(
-        "📞 Interested in This Puppy?"
+    st.markdown(
+        '<div class="section-title">'
+        '📞 Interested in a Puppy?'
+        '</div>',
+        unsafe_allow_html=True
     )
 
 
@@ -1091,20 +1315,19 @@ if st.session_state.lead_request:
         breed = ""
 
         st.write(
-            "Please tell us which puppy "
-            "you are interested in."
+            "Please specify the puppy you want."
         )
 
 
     with st.form(
-        "lead_capture_form"
+        "lead_capture"
     ):
 
-        customer_name = st.text_input(
+        name = st.text_input(
             "Your Name"
         )
 
-        customer_phone = st.text_input(
+        phone = st.text_input(
             "Phone Number"
         )
 
@@ -1115,13 +1338,13 @@ if st.session_state.lead_request:
 
         if submitted:
 
-            if not customer_name.strip():
+            if not name.strip():
 
                 st.error(
                     "Please enter your name."
                 )
 
-            elif not customer_phone.strip():
+            elif not phone.strip():
 
                 st.error(
                     "Please enter your phone number."
@@ -1130,8 +1353,8 @@ if st.session_state.lead_request:
             else:
 
                 save_enquiry(
-                    customer_name.strip(),
-                    customer_phone.strip(),
+                    name.strip(),
+                    phone.strip(),
                     puppy_id,
                     breed,
                     original_message
@@ -1146,29 +1369,61 @@ if st.session_state.lead_request:
                 st.rerun()
 
 
-# ============================================================
-# FOOTER
-# ============================================================
-
-st.divider()
+# =========================================================
+# TRUST BAR
+# =========================================================
 
 st.markdown(
     """
-    <div style="text-align:center; padding:25px 0;">
+    <div class="trust-box">
 
-    <h3>🐾 PETORA™</h3>
+        <div class="trust-title">
+        🐾 Wide Range of Pets
+        &nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;
+        🌿 Ethical & Responsible
+        &nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;
+        🚚 Pan India
+        &nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;
+        ❤️ Support & Guidance
+        </div>
 
-    <p>
-    <b>PETS BEYOND BORDERS</b>
-    </p>
+        <div class="trust-text">
+        PETORA is designed to grow from puppies
+        into a broader pet marketplace.
+        </div>
 
-    <p>
-    Dogs • Cats • Aquatics • Reptiles • Exotic Pets
-    </p>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
-    <p>
-    <i>More Pets. A Wilder World.</i>
-    </p>
+
+# =========================================================
+# FOOTER
+# =========================================================
+
+st.markdown(
+    """
+    <div class="footer">
+
+        <div class="footer-brand">
+        PETORA™
+        </div>
+
+        <div class="footer-tagline">
+        More Pets. A Wilder World.
+        </div>
+
+        <div class="footer-links">
+        Dogs • Cats • Aquatics • Reptiles • Exotic Pets
+        </div>
+
+        <div style="margin-top:14px;">
+        🐾 Care &nbsp; • &nbsp;
+        🌿 Trust &nbsp; • &nbsp;
+        ❤️ Passion &nbsp; • &nbsp;
+        🌍 For Every Species
+        </div>
 
     </div>
     """,
