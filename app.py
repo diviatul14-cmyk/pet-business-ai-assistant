@@ -10,20 +10,21 @@ from sklearn.metrics.pairwise import cosine_similarity
 from huggingface_hub import InferenceClient
 
 
-# ==================================================
-# PAGE CONFIG
-# ==================================================
+# ============================================================
+# PAGE CONFIGURATION
+# ============================================================
 
 st.set_page_config(
-    page_title="Pet Business AI Assistant",
-    page_icon="🐶",
-    layout="wide"
+    page_title="PETORA | Pets Beyond Borders",
+    page_icon="🐾",
+    layout="wide",
+    initial_sidebar_state="collapsed"
 )
 
 
-# ==================================================
-# PATHS
-# ==================================================
+# ============================================================
+# PROJECT PATHS
+# ============================================================
 
 BASE_DIR = os.path.dirname(
     os.path.abspath(__file__)
@@ -32,6 +33,11 @@ BASE_DIR = os.path.dirname(
 DATA_DIR = os.path.join(
     BASE_DIR,
     "data"
+)
+
+IMAGE_DIR = os.path.join(
+    BASE_DIR,
+    "images"
 )
 
 PUPPY_FILE = os.path.join(
@@ -49,22 +55,223 @@ ENQUIRY_FILE = os.path.join(
     "enquiries.csv"
 )
 
-
-# ==================================================
-# HEADER
-# ==================================================
-
-st.title("🐶 Pet Business AI Assistant")
-
-st.caption(
-    "Find puppies, check availability, ask questions "
-    "and send an enquiry."
+LOGO_FILE = os.path.join(
+    IMAGE_DIR,
+    "petora-logo.png"
 )
 
 
-# ==================================================
+# ============================================================
+# CUSTOM CSS
+# ============================================================
+
+st.markdown(
+    """
+    <style>
+
+    .petora-header {
+        text-align: center;
+        padding: 10px 0 5px 0;
+    }
+
+    .petora-logo {
+        max-width: 360px;
+        margin: auto;
+    }
+
+    .petora-tagline {
+        text-align: center;
+        font-size: 18px;
+        color: #8a6417;
+        font-weight: 600;
+        margin-top: -5px;
+        margin-bottom: 20px;
+    }
+
+    .hero-box {
+        background: linear-gradient(
+            135deg,
+            #f6f2e7,
+            #ffffff
+        );
+        padding: 28px;
+        border-radius: 18px;
+        border: 1px solid #e5dfcf;
+        margin-bottom: 25px;
+    }
+
+    .hero-title {
+        font-size: 34px;
+        font-weight: 700;
+        color: #123b25;
+    }
+
+    .hero-text {
+        font-size: 18px;
+        color: #555;
+    }
+
+    .category-bar {
+        text-align: center;
+        padding: 12px;
+        border-radius: 12px;
+        background: #123b25;
+        color: white;
+        font-size: 15px;
+        font-weight: 600;
+        margin-bottom: 25px;
+    }
+
+    .feature-box {
+        text-align: center;
+        padding: 15px;
+    }
+
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+
+# ============================================================
+# PETORA BRAND HEADER
+# ============================================================
+
+st.markdown(
+    '<div class="petora-header">',
+    unsafe_allow_html=True
+)
+
+if os.path.isfile(LOGO_FILE):
+
+    logo = Image.open(
+        LOGO_FILE
+    ).convert("RGB")
+
+    st.image(
+        logo,
+        width=360
+    )
+
+else:
+
+    st.title(
+        "PETORA™"
+    )
+
+st.markdown(
+    '<div class="petora-tagline">'
+    'PETS BEYOND BORDERS • More Pets. A Wilder World.'
+    '</div>',
+    unsafe_allow_html=True
+)
+
+
+# ============================================================
+# NAVIGATION
+# ============================================================
+
+st.markdown(
+    """
+    <div class="category-bar">
+    🏠 Home &nbsp;&nbsp; | &nbsp;&nbsp;
+    🐶 Dogs &nbsp;&nbsp; | &nbsp;&nbsp;
+    🐱 Cats &nbsp;&nbsp; | &nbsp;&nbsp;
+    🐟 Aquatics &nbsp;&nbsp; | &nbsp;&nbsp;
+    🐍 Reptiles &nbsp;&nbsp; | &nbsp;&nbsp;
+    🦜 Exotic Pets &nbsp;&nbsp; | &nbsp;&nbsp;
+    🤖 AI Assistant
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+
+# ============================================================
+# HERO SECTION
+# ============================================================
+
+st.markdown(
+    """
+    <div class="hero-box">
+
+    <div class="hero-title">
+    Welcome to PETORA
+    </div>
+
+    <div class="hero-text">
+    Your AI-powered pet marketplace and pet companion.
+    Find puppies, explore future pet categories, check
+    availability, ask questions and send enquiries.
+    </div>
+
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+
+# ============================================================
+# FEATURE ROW
+# ============================================================
+
+feature_columns = st.columns(4)
+
+with feature_columns[0]:
+
+    st.markdown(
+        """
+        <div class="feature-box">
+        <h3>🐾 Browse</h3>
+        <p>Explore available pets.</p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+with feature_columns[1]:
+
+    st.markdown(
+        """
+        <div class="feature-box">
+        <h3>🤖 Ask AI</h3>
+        <p>Get instant pet information.</p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+with feature_columns[2]:
+
+    st.markdown(
+        """
+        <div class="feature-box">
+        <h3>📞 Enquire</h3>
+        <p>Send your interest directly.</p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+with feature_columns[3]:
+
+    st.markdown(
+        """
+        <div class="feature-box">
+        <h3>❤️ Responsible</h3>
+        <p>Pets, care and guidance.</p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+st.divider()
+
+
+# ============================================================
 # HUGGING FACE CLIENT
-# ==================================================
+# ============================================================
 
 try:
 
@@ -81,9 +288,9 @@ except Exception:
     hf_client = None
 
 
-# ==================================================
+# ============================================================
 # EMBEDDING MODEL
-# ==================================================
+# ============================================================
 
 @st.cache_resource
 def load_embedding_model():
@@ -96,23 +303,26 @@ def load_embedding_model():
 model = load_embedding_model()
 
 
-# ==================================================
-# KNOWLEDGE BASE
-# ==================================================
+# ============================================================
+# LOAD KNOWLEDGE BASE
+# ============================================================
 
 @st.cache_data
 def load_knowledge():
 
-    if not os.path.exists(KNOWLEDGE_FILE):
+    if not os.path.exists(
+        KNOWLEDGE_FILE
+    ):
+
         return []
 
     with open(
         KNOWLEDGE_FILE,
         "r",
         encoding="utf-8"
-    ) as f:
+    ) as file:
 
-        content = f.read()
+        content = file.read()
 
     chunks = [
         chunk.strip()
@@ -137,14 +347,17 @@ else:
     knowledge_embeddings = None
 
 
-# ==================================================
-# LOAD INVENTORY
-# ==================================================
+# ============================================================
+# LOAD PUPPY INVENTORY
+# ============================================================
 
 @st.cache_data
 def load_inventory():
 
-    if not os.path.exists(PUPPY_FILE):
+    if not os.path.exists(
+        PUPPY_FILE
+    ):
+
         return pd.DataFrame()
 
     return pd.read_csv(
@@ -158,15 +371,15 @@ inventory = load_inventory()
 if inventory.empty:
 
     st.error(
-        "data/puppies.csv is missing or empty."
+        "Puppy inventory could not be loaded."
     )
 
     st.stop()
 
 
-# ==================================================
-# ENSURE COLUMNS
-# ==================================================
+# ============================================================
+# REQUIRED COLUMNS
+# ============================================================
 
 required_columns = [
     "puppy_id",
@@ -188,9 +401,9 @@ for column in required_columns:
         inventory[column] = ""
 
 
-# ==================================================
+# ============================================================
 # CLEAN INVENTORY
-# ==================================================
+# ============================================================
 
 for column in [
     "puppy_id",
@@ -222,13 +435,15 @@ inventory["age_weeks"] = pd.to_numeric(
 ).fillna(0)
 
 
-# ==================================================
+# ============================================================
 # ENQUIRY FILE
-# ==================================================
+# ============================================================
 
 def ensure_enquiry_file():
 
-    if not os.path.exists(ENQUIRY_FILE):
+    if not os.path.exists(
+        ENQUIRY_FILE
+    ):
 
         pd.DataFrame(
             columns=[
@@ -249,9 +464,9 @@ def ensure_enquiry_file():
 ensure_enquiry_file()
 
 
-# ==================================================
+# ============================================================
 # SAVE ENQUIRY
-# ==================================================
+# ============================================================
 
 def save_enquiry(
     name,
@@ -285,9 +500,9 @@ def save_enquiry(
     )
 
 
-# ==================================================
+# ============================================================
 # FIND PUPPY ID
-# ==================================================
+# ============================================================
 
 def find_puppy_id(text):
 
@@ -303,13 +518,16 @@ def find_puppy_id(text):
     return ""
 
 
-# ==================================================
+# ============================================================
 # FIND PUPPY
-# ==================================================
+# ============================================================
 
-def find_puppy(puppy_id):
+def find_puppy(
+    puppy_id
+):
 
     if not puppy_id:
+
         return None
 
     matches = inventory[
@@ -327,11 +545,13 @@ def find_puppy(puppy_id):
     return None
 
 
-# ==================================================
+# ============================================================
 # BUYING INTENT
-# ==================================================
+# ============================================================
 
-def detect_buying_intent(text):
+def detect_buying_intent(
+    text
+):
 
     keywords = [
         "interested",
@@ -356,9 +576,9 @@ def detect_buying_intent(text):
     )
 
 
-# ==================================================
+# ============================================================
 # SESSION STATE
-# ==================================================
+# ============================================================
 
 if "messages" not in st.session_state:
 
@@ -370,9 +590,9 @@ if "lead_request" not in st.session_state:
     st.session_state.lead_request = None
 
 
-# ==================================================
+# ============================================================
 # AVAILABLE PUPPIES
-# ==================================================
+# ============================================================
 
 st.subheader(
     "🐾 Available Puppies"
@@ -400,47 +620,47 @@ else:
         available.iterrows()
     ):
 
-        with columns[i % 3]:
+        with columns[
+            i % 3
+        ]:
 
-            # ------------------------------------------
-            # IMAGE
-            # ------------------------------------------
+            # ================================================
+            # PUPPY IMAGE
+            # ================================================
 
             photo_name = str(
                 puppy["photo"]
             ).strip()
 
-            if (
-                photo_name
-                and photo_name.lower() != "nan"
-            ):
+            photo_name = photo_name.lstrip(
+                "/"
+            )
 
-                photo_name = photo_name.lstrip(
-                    "/"
-                )
+            image_path = ""
+
+            if photo_name:
 
                 image_path = os.path.join(
                     BASE_DIR,
                     photo_name
                 )
 
-            else:
-
-                image_path = ""
-
 
             if (
                 image_path
-                and os.path.isfile(image_path)
+                and os.path.isfile(
+                    image_path
+                )
             ):
 
                 try:
 
                     image = Image.open(
                         image_path
-                    ).convert("RGB")
+                    ).convert(
+                        "RGB"
+                    )
 
-                    # Identical image dimensions
                     image = ImageOps.fit(
                         image,
                         (600, 450),
@@ -456,7 +676,7 @@ else:
                 except Exception:
 
                     st.warning(
-                        "Could not load image."
+                        "Unable to load image."
                     )
 
             else:
@@ -473,20 +693,22 @@ else:
                 )
 
 
-            # ------------------------------------------
-            # DETAILS
-            # ------------------------------------------
+            # ================================================
+            # PUPPY DETAILS
+            # ================================================
 
             st.subheader(
                 f"🐶 {puppy['breed']}"
             )
 
             st.write(
-                f"**Puppy ID:** {puppy['puppy_id']}"
+                f"**Puppy ID:** "
+                f"{puppy['puppy_id']}"
             )
 
             st.write(
-                f"**Gender:** {puppy['gender']}"
+                f"**Gender:** "
+                f"{puppy['gender']}"
             )
 
             st.write(
@@ -513,9 +735,9 @@ else:
             )
 
 
-            # ------------------------------------------
+            # ================================================
             # INTEREST BUTTON
-            # ------------------------------------------
+            # ================================================
 
             if st.button(
                 "📞 I'm Interested",
@@ -541,9 +763,23 @@ else:
 st.divider()
 
 
-# ==================================================
+# ============================================================
+# CHAT SECTION
+# ============================================================
+
+st.subheader(
+    "🤖 Ask PETORA AI"
+)
+
+st.caption(
+    "Ask about puppies, prices, availability, "
+    "breeds or our pet business."
+)
+
+
+# ============================================================
 # DISPLAY CHAT HISTORY
-# ==================================================
+# ============================================================
 
 for message in st.session_state.messages:
 
@@ -556,9 +792,9 @@ for message in st.session_state.messages:
         )
 
 
-# ==================================================
+# ============================================================
 # CHAT INPUT
-# ==================================================
+# ============================================================
 
 query = st.chat_input(
     "Ask about puppies, prices or availability..."
@@ -574,15 +810,18 @@ if query:
         }
     )
 
+    with st.chat_message(
+        "user"
+    ):
 
-    with st.chat_message("user"):
+        st.write(
+            query
+        )
 
-        st.write(query)
 
-
-    # ----------------------------------------------
-    # EXACT PUPPY ID
-    # ----------------------------------------------
+    # ========================================================
+    # PUPPY ID LOOKUP
+    # ========================================================
 
     puppy_id = find_puppy_id(
         query
@@ -593,11 +832,13 @@ if query:
     )
 
 
-    # ----------------------------------------------
+    # ========================================================
     # BUYING INTENT
-    # ----------------------------------------------
+    # ========================================================
 
-    if detect_buying_intent(query):
+    if detect_buying_intent(
+        query
+    ):
 
         st.session_state.lead_request = {
             "puppy_id": puppy_id,
@@ -605,15 +846,19 @@ if query:
         }
 
 
-    # ----------------------------------------------
-    # EXACT INVENTORY RESPONSE
-    # ----------------------------------------------
+    # ========================================================
+    # EXACT PUPPY ANSWER
+    # ========================================================
 
-    if puppy_id and puppy is not None:
+    if (
+        puppy_id
+        and puppy is not None
+    ):
 
         status = str(
             puppy["status"]
         )
+
 
         if status.lower() == "available":
 
@@ -654,9 +899,9 @@ if query:
 
     else:
 
-        # ------------------------------------------
-        # BUILD RAG CONTEXT
-        # ------------------------------------------
+        # ====================================================
+        # BUILD CONTEXT
+        # ====================================================
 
         inventory_keywords = [
             "price",
@@ -712,16 +957,15 @@ if query:
             context = ""
 
 
-        # ------------------------------------------
-        # HUGGING FACE CHAT
-        # ------------------------------------------
+        # ====================================================
+        # HUGGING FACE RESPONSE
+        # ====================================================
 
         if hf_client is None:
 
             answer = (
-                "The AI service is not configured. "
-                "Please check the HF_TOKEN secret "
-                "in Streamlit."
+                "The PETORA AI service is not configured. "
+                "Please check the HF_TOKEN in Streamlit Secrets."
             )
 
         else:
@@ -732,25 +976,23 @@ if query:
                     hf_client.chat.completions.create(
                         model=(
                             "Qwen/"
-                            "Qwen2.5-7B-Instruct-1M"
+                            "Qwen2.5-7B-Instruct"
                         ),
                         messages=[
                             {
                                 "role": "system",
                                 "content": (
-                                    "You are a helpful "
-                                    "pet business assistant. "
-                                    "Use ONLY the provided "
-                                    "context. "
-                                    "Never invent prices, "
-                                    "availability, ages, "
-                                    "breeds, vaccination "
-                                    "information or other "
-                                    "business facts. "
-                                    "If the answer is not "
-                                    "in the context, say: "
-                                    "'I don't know based on "
-                                    "the available information.'"
+                                    "You are PETORA AI Assistant, "
+                                    "a helpful assistant for a pet "
+                                    "business. Use ONLY the provided "
+                                    "context. Never invent prices, "
+                                    "availability, breeds, ages, "
+                                    "vaccination records or other "
+                                    "business facts. If information "
+                                    "is not available, say: "
+                                    "'I don't know based on the "
+                                    "available information.' "
+                                    "Keep answers clear and helpful."
                                 )
                             },
                             {
@@ -772,17 +1014,17 @@ Question:
                 )
 
                 answer = (
-                    completion.choices[0]
+                    completion
+                    .choices[0]
                     .message
                     .content
                 )
 
-            except Exception as error:
+            except Exception:
 
                 answer = (
-                    "Sorry, the cloud AI service "
-                    "could not answer right now.\n\n"
-                    f"Error: {error}"
+                    "Sorry, PETORA AI is temporarily "
+                    "unavailable. Please try again."
                 )
 
 
@@ -803,9 +1045,9 @@ Question:
         )
 
 
-# ==================================================
-# LEAD CAPTURE FORM
-# ==================================================
+# ============================================================
+# LEAD CAPTURE
+# ============================================================
 
 if st.session_state.lead_request:
 
@@ -902,3 +1144,33 @@ if st.session_state.lead_request:
                 st.session_state.lead_request = None
 
                 st.rerun()
+
+
+# ============================================================
+# FOOTER
+# ============================================================
+
+st.divider()
+
+st.markdown(
+    """
+    <div style="text-align:center; padding:25px 0;">
+
+    <h3>🐾 PETORA™</h3>
+
+    <p>
+    <b>PETS BEYOND BORDERS</b>
+    </p>
+
+    <p>
+    Dogs • Cats • Aquatics • Reptiles • Exotic Pets
+    </p>
+
+    <p>
+    <i>More Pets. A Wilder World.</i>
+    </p>
+
+    </div>
+    """,
+    unsafe_allow_html=True
+)
