@@ -1,10 +1,11 @@
 import os
 import re
+import html
 from datetime import datetime
 
 import pandas as pd
 import streamlit as st
-from PIL import Image, ImageOps, ImageChops, ImageDraw
+from PIL import Image, ImageOps, ImageChops
 
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
@@ -39,6 +40,16 @@ LOGO_FILE = os.path.join(IMAGE_DIR, "petora-logo.png")
 
 
 # ============================================================
+# SETTINGS
+# ============================================================
+
+# Hugging Face model.
+# Hugging Face currently documents this model with
+# Inference Providers and provider="auto".
+HF_MODEL = "deepseek-ai/DeepSeek-V3-0324"
+
+
+# ============================================================
 # CUSTOM CSS
 # ============================================================
 
@@ -46,12 +57,8 @@ st.markdown(
     """
 <style>
 
-/* ==========================================================
-   GLOBAL
-   ========================================================== */
-
-html, body, [class*="css"] {
-    font-family: Arial, Helvetica, sans-serif;
+html, body {
+    background: #f8f7f1;
 }
 
 .stApp {
@@ -66,69 +73,76 @@ html, body, [class*="css"] {
 
 
 /* ==========================================================
-   TOP BRAND HEADER
+   BRAND HEADER
    ========================================================== */
 
-.brand-wrap {
+.brand-area {
     background: linear-gradient(
-        100deg,
-        #eef3ea 0%,
-        #ffffff 48%,
-        #e9efe5 100%
+        105deg,
+        #eef3e9 0%,
+        #ffffff 50%,
+        #edf3e9 100%
     );
 
     border: 1px solid #d9dfd4;
-    border-radius: 20px;
+    border-radius: 22px;
 
-    padding: 12px 24px;
+    padding: 12px 25px 16px 25px;
 
-    margin-bottom: 10px;
+    margin-bottom: 12px;
 
-    box-shadow: 0 5px 18px rgba(0,0,0,0.05);
+    text-align: center;
+
+    box-shadow:
+        0 7px 20px rgba(0,0,0,0.05);
 }
 
-.brand-wrap img {
+.brand-area img {
     display: block;
     margin: 0 auto;
+    max-width: 430px;
+    max-height: 180px;
+    object-fit: contain;
 }
 
-.brand-sub {
-    text-align: center;
-    color: #9b7424;
+.brand-subtitle {
+    color: #9a731d;
     font-size: 15px;
-    font-weight: 800;
+    font-weight: 900;
     letter-spacing: 3px;
 }
 
-.brand-line {
-    text-align: center;
-    color: #345d44;
+.brand-tagline {
+    color: #315d41;
     font-size: 16px;
     font-style: italic;
-    margin-top: 3px;
+    margin-top: 4px;
 }
 
 
 /* ==========================================================
-   NAV
+   NAVIGATION
    ========================================================== */
 
-.nav-wrap {
-    background: #0b4428;
+.nav-bar {
+    background: #0d4529;
+
     color: white;
 
     border-radius: 14px;
 
-    padding: 13px 16px;
+    padding: 14px 10px;
+
+    margin-bottom: 24px;
 
     text-align: center;
 
     font-size: 15px;
-    font-weight: 700;
 
-    box-shadow: 0 6px 14px rgba(11,68,40,0.15);
+    font-weight: 800;
 
-    margin-bottom: 22px;
+    box-shadow:
+        0 6px 15px rgba(13,69,41,0.18);
 }
 
 
@@ -140,77 +154,79 @@ html, body, [class*="css"] {
     background:
         linear-gradient(
             110deg,
-            #f7f2e6 0%,
-            #ffffff 52%,
-            #edf3e9 100%
+            #f6f1e4 0%,
+            #ffffff 55%,
+            #edf4e9 100%
         );
 
-    border: 1px solid #ded9ca;
+    border: 1px solid #ddd8c9;
 
     border-radius: 22px;
 
     padding: 34px 38px;
 
-    box-shadow: 0 7px 20px rgba(0,0,0,0.05);
-
     margin-bottom: 22px;
 
-    position: relative;
-    overflow: hidden;
-}
-
-.hero:after {
-    content: "🐕     🐈     🐟     🐍     🦜";
-    position: absolute;
-    right: 25px;
-    bottom: 14px;
-    font-size: 27px;
-    opacity: 0.20;
+    box-shadow:
+        0 7px 20px rgba(0,0,0,0.05);
 }
 
 .hero-small {
     color: #a1781e;
+
     font-size: 14px;
+
     font-weight: 900;
+
     letter-spacing: 2px;
+
     text-transform: uppercase;
 }
 
 .hero-title {
-    color: #103d27;
-    font-size: 44px;
-    line-height: 1.1;
+    color: #123d27;
+
+    font-size: 43px;
+
     font-weight: 900;
-    margin-top: 7px;
+
+    line-height: 1.1;
+
+    margin-top: 5px;
 }
 
 .hero-description {
-    color: #575757;
+    color: #555;
+
     font-size: 18px;
+
     line-height: 1.6;
-    max-width: 930px;
+
+    max-width: 950px;
+
     margin-top: 10px;
 }
 
 
 /* ==========================================================
-   FEATURE STRIP
+   FEATURE CARDS
    ========================================================== */
 
-.feature-card {
-    background: #ffffff;
+.feature-box {
+    background: white;
 
-    border: 1px solid #e1ddd4;
+    border: 1px solid #e2ded4;
 
-    border-radius: 15px;
+    border-radius: 16px;
 
-    padding: 16px 10px;
-
-    min-height: 125px;
+    padding: 17px 10px;
 
     text-align: center;
 
-    box-shadow: 0 5px 14px rgba(0,0,0,0.04);
+    min-height: 126px;
+
+    box-shadow:
+        0 5px 14px rgba(0,0,0,0.04);
 }
 
 .feature-icon {
@@ -218,34 +234,54 @@ html, body, [class*="css"] {
 }
 
 .feature-title {
-    color: #17482d;
-    font-weight: 800;
-    margin-top: 5px;
+    color: #17482e;
+
+    font-weight: 900;
+
+    margin-top: 6px;
 }
 
 .feature-text {
     color: #777;
+
     font-size: 13px;
-    margin-top: 3px;
+
+    margin-top: 4px;
 }
 
 
 /* ==========================================================
-   SECTION HEADERS
+   SECTION
    ========================================================== */
 
 .section-heading {
     color: #123d27;
+
     font-size: 30px;
+
     font-weight: 900;
-    margin-top: 20px;
+
+    margin-top: 15px;
+
     margin-bottom: 4px;
 }
 
 .section-subheading {
     color: #777;
+
     font-size: 15px;
-    margin-bottom: 15px;
+
+    margin-bottom: 16px;
+}
+
+
+/* ==========================================================
+   PUPPY IMAGE
+   ========================================================== */
+
+.puppy-image {
+    border-radius: 15px;
+    overflow: hidden;
 }
 
 
@@ -253,69 +289,71 @@ html, body, [class*="css"] {
    PUPPY CARD
    ========================================================== */
 
-.puppy-card {
-    background: #ffffff;
+.puppy-box {
+    background: white;
 
     border: 1px solid #ddd9cf;
 
     border-radius: 18px;
 
-    overflow: hidden;
+    padding: 15px 15px 12px 15px;
 
-    box-shadow: 0 7px 18px rgba(0,0,0,0.06);
+    box-shadow:
+        0 7px 18px rgba(0,0,0,0.06);
 
-    margin-bottom: 10px;
-}
-
-.puppy-card img {
-    width: 100%;
-    height: 255px;
-    object-fit: cover;
-    display: block;
-}
-
-.puppy-content {
-    padding: 15px 16px 8px 16px;
+    margin-top: -4px;
 }
 
 .puppy-breed {
     color: #143f28;
-    font-size: 21px;
+
+    font-size: 20px;
+
     font-weight: 900;
 }
 
 .puppy-id {
-    color: #787878;
+    color: #7b7b7b;
+
     font-size: 13px;
-    margin-top: 3px;
+
+    margin-top: 4px;
 }
 
-.puppy-row {
-    color: #4a4a4a;
-    margin-top: 8px;
+.puppy-line {
+    color: #484848;
+
     font-size: 14px;
+
+    margin-top: 8px;
 }
 
 .puppy-price {
-    color: #1a743c;
+    color: #18763c;
+
     font-size: 26px;
+
     font-weight: 900;
+
     margin-top: 10px;
 }
 
-.available {
+.available-pill {
     display: inline-block;
-    background: #e1f6e7;
-    color: #23783d;
-    border-radius: 40px;
-    padding: 5px 10px;
-    font-size: 13px;
-    font-weight: 800;
-    margin-top: 8px;
-}
 
-.puppy-footer {
-    padding: 0 16px 16px 16px;
+    background: #e2f6e7;
+
+    color: #22763d;
+
+    border-radius: 50px;
+
+    padding: 5px 10px;
+
+    font-size: 13px;
+
+    font-weight: 900;
+
+    margin-top: 8px;
 }
 
 
@@ -324,47 +362,66 @@ html, body, [class*="css"] {
    ========================================================== */
 
 .ai-box {
-    background: #ffffff;
+    background: white;
 
     border: 1px solid #ddd9cf;
 
     border-radius: 20px;
 
-    box-shadow: 0 7px 18px rgba(0,0,0,0.06);
-
     padding: 20px;
 
-    min-height: 300px;
+    box-shadow:
+        0 7px 18px rgba(0,0,0,0.06);
+
+    margin-bottom: 12px;
 }
 
 .ai-title {
-    color: #103d27;
+    color: #123d27;
+
     font-size: 25px;
+
     font-weight: 900;
 }
 
-.ai-subtitle {
+.ai-description {
     color: #777;
+
     font-size: 14px;
+
     margin-top: 3px;
 }
 
 .chat-user {
-    background: #1c6f3a;
+    background: #1d713b;
+
     color: white;
+
     border-radius: 14px 14px 4px 14px;
+
     padding: 10px 13px;
-    margin: 10px 0 8px 28px;
+
+    margin: 9px 0 8px 25px;
+
     font-size: 14px;
+
+    line-height: 1.5;
 }
 
 .chat-ai {
-    background: #f0f3ef;
+    background: #edf2ed;
+
     color: #303030;
+
     border-radius: 14px 14px 14px 4px;
-    padding: 10px 13px;
-    margin: 8px 28px 10px 0;
+
+    padding: 11px 13px;
+
+    margin: 8px 25px 10px 0;
+
     font-size: 14px;
+
+    line-height: 1.55;
 }
 
 
@@ -372,49 +429,54 @@ html, body, [class*="css"] {
    TRUST BAR
    ========================================================== */
 
-.trust-wrap {
-    background: #edf5ea;
+.trust-box {
+    background: #eef5eb;
 
     border: 1px solid #d6e2d1;
 
     border-radius: 17px;
 
-    padding: 18px 12px;
-
-    margin-top: 25px;
+    padding: 20px 12px;
 
     text-align: center;
+
+    margin-top: 25px;
 }
 
-.trust-line {
+.trust-title {
     color: #194a2f;
+
     font-size: 16px;
-    font-weight: 800;
+
+    font-weight: 900;
 }
 
-.trust-note {
+.trust-text {
     color: #707070;
+
     font-size: 13px;
+
     margin-top: 7px;
 }
 
 
 /* ==========================================================
-   LEAD FORM
+   LEAD
    ========================================================== */
 
 .lead-box {
-    background: #ffffff;
+    background: white;
 
     border: 1px solid #ddd9cf;
 
     border-radius: 18px;
 
-    padding: 22px;
+    padding: 20px;
 
-    margin-top: 20px;
+    margin-top: 22px;
 
-    box-shadow: 0 6px 16px rgba(0,0,0,0.05);
+    box-shadow:
+        0 6px 16px rgba(0,0,0,0.05);
 }
 
 
@@ -422,8 +484,8 @@ html, body, [class*="css"] {
    FOOTER
    ========================================================== */
 
-.footer {
-    background: #0b4428;
+.footer-box {
+    background: #0d4529;
 
     color: white;
 
@@ -438,25 +500,31 @@ html, body, [class*="css"] {
 
 .footer-brand {
     font-size: 31px;
+
     font-weight: 900;
 }
 
-.footer-gold {
+.footer-tagline {
     color: #e2bd61;
-    font-style: italic;
+
     font-size: 17px;
+
+    font-style: italic;
+
     margin-top: 4px;
 }
 
 .footer-small {
-    color: #d7e4da;
-    font-size: 13px;
-    margin-top: 9px;
+    color: #d9e5dc;
+
+    font-size: 14px;
+
+    margin-top: 8px;
 }
 
 
 /* ==========================================================
-   STREAMLIT BUTTON
+   BUTTONS
    ========================================================== */
 
 .stButton > button {
@@ -472,21 +540,18 @@ html, body, [class*="css"] {
 
     color: white;
 
-    font-weight: 800;
+    font-weight: 900;
 }
 
 .stButton > button:hover {
-    background: #936a1e;
+    background: #956d20;
+
     color: white;
 }
 
-
-/* ==========================================================
-   CHAT INPUT / TEXT INPUT
-   ========================================================== */
-
-.stTextInput input {
-    border-radius: 12px;
+.stFormSubmitButton > button {
+    border-radius: 10px;
+    font-weight: 800;
 }
 
 </style>
@@ -496,14 +561,13 @@ html, body, [class*="css"] {
 
 
 # ============================================================
-# UTILITY: CROP LOGO WHITESPACE
+# LOGO
 # ============================================================
 
 def crop_logo(image):
-
     """
-    Removes large uniform borders around the logo so the
-    supplied poster-style PNG behaves more like a normal logo.
+    Crops large uniform whitespace from the supplied logo.
+    Keeps the existing image; does not alter the source file.
     """
 
     try:
@@ -516,25 +580,23 @@ def crop_logo(image):
             image.getpixel((0, 0))
         )
 
-        diff = ImageChops.difference(
+        difference = ImageChops.difference(
             image,
             background
         )
 
-        diff = ImageOps.grayscale(
-            diff
+        difference = ImageOps.grayscale(
+            difference
         )
 
-        bbox = diff.getbbox()
+        bbox = difference.getbbox()
 
         if bbox:
-
             image = image.crop(bbox)
 
         return image
 
     except Exception:
-
         return image
 
 
@@ -542,41 +604,63 @@ def crop_logo(image):
 # BRAND HEADER
 # ============================================================
 
-st.html(
-    """
-    <div class="brand-wrap">
-    """
-)
-
-
-if os.path.exists(LOGO_FILE):
+if os.path.isfile(LOGO_FILE):
 
     try:
 
-        logo_image = Image.open(
+        logo = Image.open(
             LOGO_FILE
         )
 
-        logo_image = crop_logo(
-            logo_image
+        logo = crop_logo(
+            logo
+        )
+
+        st.html(
+            '<div class="brand-area">'
         )
 
         st.image(
-            logo_image,
+            logo,
             width=430
+        )
+
+        st.html(
+            """
+            <div class="brand-subtitle">
+                PETS BEYOND BORDERS
+            </div>
+
+            <div class="brand-tagline">
+                More Pets. A Wilder World.
+            </div>
+
+            </div>
+            """
         )
 
     except Exception:
 
         st.html(
             """
-            <div style="
-                text-align:center;
-                color:#103d27;
-                font-size:44px;
-                font-weight:900;
-            ">
-                PETORA™
+            <div class="brand-area">
+
+                <div style="
+                    color:#123d27;
+                    font-size:45px;
+                    font-weight:900;
+                ">
+                    PETORA™
+                </div>
+
+                <div class="brand-subtitle">
+                    PETS BEYOND BORDERS
+                </div>
+
+                <div class="brand-tagline">
+                    More Pets. A Wilder World.
+                </div>
+
             </div>
             """
         )
@@ -585,31 +669,27 @@ else:
 
     st.html(
         """
-        <div style="
-            text-align:center;
-            color:#103d27;
-            font-size:44px;
-            font-weight:900;
-        ">
-            PETORA™
+        <div class="brand-area">
+
+            <div style="
+                color:#123d27;
+                font-size:45px;
+                font-weight:900;
+            ">
+                PETORA™
+            </div>
+
+            <div class="brand-subtitle">
+                PETS BEYOND BORDERS
+            </div>
+
+            <div class="brand-tagline">
+                More Pets. A Wilder World.
+            </div>
+
         </div>
         """
     )
-
-
-st.html(
-    """
-    <div class="brand-sub">
-        PETS BEYOND BORDERS
-    </div>
-
-    <div class="brand-line">
-        More Pets. A Wilder World.
-    </div>
-
-    </div>
-    """
-)
 
 
 # ============================================================
@@ -618,22 +698,31 @@ st.html(
 
 st.html(
     """
-    <div class="nav-wrap">
+    <div class="nav-bar">
+
         🏠 Home
-        &nbsp;&nbsp; | &nbsp;&nbsp;
+        &nbsp; | &nbsp;
+
         🐶 Dogs
-        &nbsp;&nbsp; | &nbsp;&nbsp;
+        &nbsp; | &nbsp;
+
         🐱 Cats
-        &nbsp;&nbsp; | &nbsp;&nbsp;
+        &nbsp; | &nbsp;
+
         🐟 Aquatics
-        &nbsp;&nbsp; | &nbsp;&nbsp;
+        &nbsp; | &nbsp;
+
         🐍 Reptiles
-        &nbsp;&nbsp; | &nbsp;&nbsp;
+        &nbsp; | &nbsp;
+
         🦜 Exotic Pets
-        &nbsp;&nbsp; | &nbsp;&nbsp;
+        &nbsp; | &nbsp;
+
         🤖 AI Assistant
-        &nbsp;&nbsp; | &nbsp;&nbsp;
+        &nbsp; | &nbsp;
+
         ℹ️ About
+
     </div>
     """
 )
@@ -670,8 +759,6 @@ st.html(
 # FEATURES
 # ============================================================
 
-feature_columns = st.columns(4)
-
 feature_data = [
     (
         "✅",
@@ -691,23 +778,24 @@ feature_data = [
     (
         "🤖",
         "PETORA AI",
-        "Instant answers from your data."
+        "Answers from your business data."
     ),
 ]
 
+feature_columns = st.columns(4)
 
 for column, item in zip(
     feature_columns,
     feature_data
 ):
 
-    icon, title, text = item
+    icon, title, description = item
 
     with column:
 
         st.html(
             f"""
-            <div class="feature-card">
+            <div class="feature-box">
 
                 <div class="feature-icon">
                     {icon}
@@ -718,7 +806,7 @@ for column, item in zip(
                 </div>
 
                 <div class="feature-text">
-                    {text}
+                    {description}
                 </div>
 
             </div>
@@ -727,23 +815,24 @@ for column, item in zip(
 
 
 # ============================================================
-# LOAD INVENTORY
+# INVENTORY
 # ============================================================
 
 @st.cache_data
 def load_inventory():
 
-    if not os.path.exists(
+    if not os.path.isfile(
         PUPPY_FILE
     ):
-
         return pd.DataFrame()
 
     try:
 
-        return pd.read_csv(
+        df = pd.read_csv(
             PUPPY_FILE
         )
+
+        return df
 
     except Exception:
 
@@ -763,7 +852,7 @@ if inventory.empty:
 
 
 # ============================================================
-# REQUIRED COLUMNS
+# ENSURE COLUMNS
 # ============================================================
 
 required_columns = [
@@ -777,7 +866,6 @@ required_columns = [
     "location",
     "photo",
 ]
-
 
 for column in required_columns:
 
@@ -827,10 +915,9 @@ inventory["age_weeks"] = pd.to_numeric(
 @st.cache_data
 def load_knowledge():
 
-    if not os.path.exists(
+    if not os.path.isfile(
         KNOWLEDGE_FILE
     ):
-
         return []
 
     try:
@@ -841,7 +928,7 @@ def load_knowledge():
             encoding="utf-8"
         ) as file:
 
-            text = file.read()
+            content = file.read()
 
     except Exception:
 
@@ -852,7 +939,7 @@ def load_knowledge():
         chunk.strip()
         for chunk in re.split(
             r"[\n.!?]+",
-            text
+            content
         )
         if chunk.strip()
     ]
@@ -892,12 +979,12 @@ else:
 
 
 # ============================================================
-# ENQUIRY FILE
+# ENQUIRIES
 # ============================================================
 
 def ensure_enquiry_file():
 
-    if not os.path.exists(
+    if not os.path.isfile(
         ENQUIRY_FILE
     ):
 
@@ -919,10 +1006,6 @@ def ensure_enquiry_file():
 
 ensure_enquiry_file()
 
-
-# ============================================================
-# SAVE ENQUIRY
-# ============================================================
 
 def save_enquiry(
     name,
@@ -969,7 +1052,9 @@ def find_puppy_id(text):
 
     if match:
 
-        return match.group(0).upper()
+        return match.group(
+            0
+        ).upper()
 
     return ""
 
@@ -1012,11 +1097,81 @@ def detect_buying_intent(text):
         "i would like",
     ]
 
-    lower = text.lower()
+    text = text.lower()
 
     return any(
-        word in lower
-        for word in keywords
+        keyword in text
+        for keyword in keywords
+    )
+
+
+def make_inventory_context():
+
+    return (
+        "CURRENT PET INVENTORY:\n\n"
+        + inventory.to_string(
+            index=False
+        )
+    )
+
+
+def make_rag_context(query):
+
+    inventory_terms = [
+        "price",
+        "puppy",
+        "puppies",
+        "available",
+        "availability",
+        "breed",
+        "male",
+        "female",
+        "vaccinated",
+        "sold",
+        "age",
+        "inventory",
+        "location",
+    ]
+
+    if any(
+        term in query.lower()
+        for term in inventory_terms
+    ):
+
+        return make_inventory_context()
+
+
+    if (
+        knowledge_embeddings is None
+        or not knowledge_chunks
+    ):
+
+        return ""
+
+
+    query_vector = (
+        embedding_model.encode(
+            [query]
+        )
+    )
+
+
+    scores = cosine_similarity(
+        query_vector,
+        knowledge_embeddings
+    )[0]
+
+
+    top_indices = (
+        scores.argsort()[
+            -4:
+        ][::-1]
+    )
+
+
+    return "\n".join(
+        knowledge_chunks[i]
+        for i in top_indices
     )
 
 
@@ -1035,7 +1190,7 @@ if "lead_request" not in st.session_state:
 
 
 # ============================================================
-# MAIN TWO-COLUMN AREA
+# MAIN LAYOUT
 # ============================================================
 
 left_column, right_column = st.columns(
@@ -1045,7 +1200,7 @@ left_column, right_column = st.columns(
 
 
 # ============================================================
-# LEFT COLUMN
+# LEFT COLUMN — PUPPIES
 # ============================================================
 
 with left_column:
@@ -1079,7 +1234,7 @@ with left_column:
 
     else:
 
-        cards = st.columns(
+        puppy_columns = st.columns(
             min(
                 3,
                 len(available)
@@ -1091,27 +1246,27 @@ with left_column:
             available.iterrows()
         ):
 
-            with cards[
-                index % len(cards)
+            with puppy_columns[
+                index % len(puppy_columns)
             ]:
 
-                # --------------------------------------------
+                # ------------------------------------------------
                 # IMAGE
-                # --------------------------------------------
+                # ------------------------------------------------
 
-                photo = str(
+                photo_name = str(
                     puppy["photo"]
                 ).strip().lstrip("/")
 
 
                 image_path = os.path.join(
                     BASE_DIR,
-                    photo
+                    photo_name
                 )
 
 
                 if (
-                    photo
+                    photo_name
                     and os.path.isfile(
                         image_path
                     )
@@ -1119,21 +1274,25 @@ with left_column:
 
                     try:
 
-                        image = Image.open(
+                        puppy_image = Image.open(
                             image_path
                         ).convert(
                             "RGB"
                         )
 
-                        image = ImageOps.fit(
-                            image,
+
+                        # Same displayed dimensions for all
+                        # puppy images.
+                        puppy_image = ImageOps.fit(
+                            puppy_image,
                             (600, 450),
                             method=Image.Resampling.LANCZOS,
                             centering=(0.5, 0.5)
                         )
 
+
                         st.image(
-                            image,
+                            puppy_image,
                             width="stretch"
                         )
 
@@ -1150,53 +1309,80 @@ with left_column:
                     )
 
 
-                # --------------------------------------------
-                # DETAILS
-                # --------------------------------------------
+                # ------------------------------------------------
+                # CARD INFORMATION
+                # ------------------------------------------------
+
+                safe_breed = html.escape(
+                    str(
+                        puppy["breed"]
+                    )
+                )
+
+                safe_id = html.escape(
+                    str(
+                        puppy["puppy_id"]
+                    )
+                )
+
+                safe_gender = html.escape(
+                    str(
+                        puppy["gender"]
+                    )
+                )
+
+                safe_vaccinated = html.escape(
+                    str(
+                        puppy["vaccinated"]
+                    )
+                )
+
+                safe_location = html.escape(
+                    str(
+                        puppy["location"]
+                    )
+                )
+
 
                 st.html(
                     f"""
-                    <div class="puppy-card">
+                    <div class="puppy-box">
 
-                        <div class="puppy-content">
+                        <div class="puppy-breed">
+                            🐶 {safe_breed}
+                        </div>
 
-                            <div class="puppy-breed">
-                                🐶 {puppy['breed']}
-                            </div>
+                        <div class="puppy-id">
+                            Puppy ID:
+                            <b>{safe_id}</b>
+                        </div>
 
-                            <div class="puppy-id">
-                                Puppy ID:
-                                <b>{puppy['puppy_id']}</b>
-                            </div>
+                        <div class="puppy-line">
+                            Gender:
+                            <b>{safe_gender}</b>
+                        </div>
 
-                            <div class="puppy-row">
-                                Gender:
-                                <b>{puppy['gender']}</b>
-                            </div>
+                        <div class="puppy-line">
+                            Age:
+                            <b>{int(puppy["age_weeks"])} weeks</b>
+                        </div>
 
-                            <div class="puppy-row">
-                                Age:
-                                <b>{int(puppy['age_weeks'])} weeks</b>
-                            </div>
+                        <div class="puppy-price">
+                            ₹{puppy["price"]:,.0f}
+                        </div>
 
-                            <div class="puppy-price">
-                                ₹{puppy['price']:,.0f}
-                            </div>
+                        <span class="available-pill">
+                            ✓ Available
+                        </span>
 
-                            <span class="available">
-                                ✓ Available
-                            </span>
+                        <div class="puppy-line">
+                            Vaccinated:
+                            <b>{safe_vaccinated}</b>
+                        </div>
 
-                            <div class="puppy-row">
-                                Vaccinated:
-                                <b>{puppy['vaccinated']}</b>
-                            </div>
-
-                            <div class="puppy-row">
-                                Location:
-                                <b>{puppy['location']}</b>
-                            </div>
-
+                        <div class="puppy-line">
+                            Location:
+                            <b>{safe_location}</b>
                         </div>
 
                     </div>
@@ -1226,7 +1412,7 @@ with left_column:
 
 
 # ============================================================
-# RIGHT COLUMN - AI
+# RIGHT COLUMN — AI
 # ============================================================
 
 with right_column:
@@ -1239,7 +1425,7 @@ with right_column:
                 🤖 PETORA AI Assistant
             </div>
 
-            <div class="ai-subtitle">
+            <div class="ai-description">
                 Ask about puppies, prices, availability,
                 breeds or pet care.
             </div>
@@ -1249,80 +1435,99 @@ with right_column:
     )
 
 
-    # --------------------------------------------
+    # --------------------------------------------------------
     # CHAT HISTORY
-    # --------------------------------------------
+    # --------------------------------------------------------
 
     for message in st.session_state.messages:
 
         if message["role"] == "user":
 
+            safe_message = html.escape(
+                str(
+                    message["content"]
+                )
+            )
+
             st.html(
                 f"""
                 <div class="chat-user">
-                    {message["content"]}
+                    {safe_message}
                 </div>
                 """
             )
 
         else:
 
-            # Escape HTML-sensitive characters so that
-            # AI responses are displayed safely.
-            safe_answer = (
-                str(
-                    message["content"]
+            safe_message = (
+                html.escape(
+                    str(
+                        message["content"]
+                    )
                 )
-                .replace("&", "&amp;")
-                .replace("<", "&lt;")
-                .replace(">", "&gt;")
-                .replace("\n", "<br>")
+                .replace(
+                    "\n",
+                    "<br>"
+                )
             )
 
             st.html(
                 f"""
                 <div class="chat-ai">
-                    {safe_answer}
+                    {safe_message}
                 </div>
                 """
             )
 
 
-    # --------------------------------------------
-    # CHAT INPUT
-    # --------------------------------------------
+    # --------------------------------------------------------
+    # CHAT FORM
+    # --------------------------------------------------------
 
     with st.form(
         "petora_chat_form",
         clear_on_submit=True
     ):
 
-        question = st.text_input(
+        query = st.text_input(
             "Ask PETORA AI",
             placeholder=(
-                "Ask about puppies, "
-                "prices or availability..."
+                "Ask about puppies, prices "
+                "or availability..."
             ),
-            label_visibility="collapsed",
+            label_visibility="collapsed"
         )
+
 
         ask_button = st.form_submit_button(
             "➤ Ask PETORA"
         )
 
 
-    if ask_button and question.strip():
+    # --------------------------------------------------------
+    # PROCESS QUESTION
+    # --------------------------------------------------------
 
-        query = question.strip()
+    if ask_button and query.strip():
 
+        query = query.strip()
+
+
+        # ----------------------------------------------------
+        # STORE USER MESSAGE
+        # ----------------------------------------------------
 
         st.session_state.messages.append(
             {
                 "role": "user",
-                "content": query,
+                "content": query
             }
         )
 
+
+        # ----------------------------------------------------
+        # FIND PUPPY ID
+        # ----------------------------------------------------
 
         puppy_id = find_puppy_id(
             query
@@ -1333,9 +1538,9 @@ with right_column:
         )
 
 
-        # -----------------------------------------
+        # ----------------------------------------------------
         # BUYING INTENT
-        # -----------------------------------------
+        # ----------------------------------------------------
 
         if detect_buying_intent(
             query
@@ -1343,13 +1548,13 @@ with right_column:
 
             st.session_state.lead_request = {
                 "puppy_id": puppy_id,
-                "message": query,
+                "message": query
             }
 
 
-        # -----------------------------------------
-        # EXACT PUPPY LOOKUP
-        # -----------------------------------------
+        # ----------------------------------------------------
+        # EXACT PUPPY ANSWER
+        # ----------------------------------------------------
 
         if (
             puppy_id
@@ -1365,11 +1570,11 @@ with right_column:
 
                 answer = (
                     f"{puppy_id} is available.\n\n"
-                    f"Breed: {puppy['breed']}\n"
-                    f"Gender: {puppy['gender']}\n"
-                    f"Age: {int(puppy['age_weeks'])} weeks\n"
-                    f"Price: ₹{puppy['price']:,.0f}\n"
-                    f"Vaccinated: {puppy['vaccinated']}\n"
+                    f"Breed: {puppy['breed']}\n\n"
+                    f"Gender: {puppy['gender']}\n\n"
+                    f"Age: {int(puppy['age_weeks'])} weeks\n\n"
+                    f"Price: ₹{puppy['price']:,.0f}\n\n"
+                    f"Vaccinated: {puppy['vaccinated']}\n\n"
                     f"Location: {puppy['location']}"
                 )
 
@@ -1383,74 +1588,18 @@ with right_column:
 
         else:
 
-            # -----------------------------------------
-            # RAG CONTEXT
-            # -----------------------------------------
+            # ------------------------------------------------
+            # RAG
+            # ------------------------------------------------
 
-            inventory_terms = [
-                "price",
-                "puppy",
-                "puppies",
-                "available",
-                "availability",
-                "breed",
-                "male",
-                "female",
-                "vaccinated",
-                "sold",
-                "age",
-                "inventory",
-                "location",
-            ]
+            context = make_rag_context(
+                query
+            )
 
 
-            if any(
-                term in query.lower()
-                for term in inventory_terms
-            ):
-
-                context = (
-                    "CURRENT INVENTORY:\n\n"
-                    + inventory.to_string(
-                        index=False
-                    )
-                )
-
-            elif (
-                knowledge_embeddings is not None
-                and knowledge_chunks
-            ):
-
-                query_embedding = (
-                    embedding_model.encode(
-                        [query]
-                    )
-                )
-
-                similarities = cosine_similarity(
-                    query_embedding,
-                    knowledge_embeddings
-                )[0]
-
-                top_indices = (
-                    similarities.argsort()[
-                        -3:
-                    ][::-1]
-                )
-
-                context = "\n".join(
-                    knowledge_chunks[i]
-                    for i in top_indices
-                )
-
-            else:
-
-                context = ""
-
-
-            # -----------------------------------------
-            # HUGGING FACE
-            # -----------------------------------------
+            # ------------------------------------------------
+            # HUGGING FACE TOKEN
+            # ------------------------------------------------
 
             try:
 
@@ -1466,11 +1615,16 @@ with right_column:
             if not hf_token:
 
                 answer = (
-                    "PETORA AI is not configured. "
-                    "Please add HF_TOKEN in Streamlit Secrets."
+                    "PETORA AI is not configured.\n\n"
+                    "Please add HF_TOKEN to your "
+                    "Streamlit Secrets."
                 )
 
             else:
+
+                # ------------------------------------------------
+                # HUGGING FACE INFERENCE PROVIDERS
+                # ------------------------------------------------
 
                 try:
 
@@ -1480,71 +1634,84 @@ with right_column:
                     )
 
 
-                    result = (
+                    response = (
                         client.chat.completions.create(
-                            model=(
-                                "Qwen/"
-                                "Qwen2.5-7B-Instruct"
-                            ),
+                            model=HF_MODEL,
                             messages=[
                                 {
                                     "role": "system",
                                     "content": (
                                         "You are PETORA AI "
                                         "Assistant for a pet "
-                                        "business. Use ONLY "
-                                        "the provided context. "
+                                        "business.\n\n"
+
+                                        "Use ONLY the supplied "
+                                        "context.\n\n"
+
                                         "Never invent puppy "
                                         "prices, breeds, ages, "
                                         "availability, "
-                                        "vaccination data or "
-                                        "locations. If the "
-                                        "answer is not present, "
-                                        "say: I don't know "
+                                        "vaccination information "
+                                        "or locations.\n\n"
+
+                                        "If the answer is not in "
+                                        "the context, say exactly "
+                                        "that you do not know "
                                         "based on the available "
-                                        "information. Keep the "
-                                        "answer helpful and "
-                                        "concise."
-                                    ),
+                                        "information.\n\n"
+
+                                        "Keep answers concise, "
+                                        "helpful and suitable "
+                                        "for customers."
+                                    )
                                 },
                                 {
                                     "role": "user",
                                     "content": (
-                                        f"Context:\n"
+                                        "Context:\n\n"
                                         f"{context}\n\n"
-                                        f"Question:\n"
+                                        "Customer question:\n\n"
                                         f"{query}"
-                                    ),
-                                },
+                                    )
+                                }
                             ],
                             max_tokens=300,
-                            temperature=0.2,
+                            temperature=0.2
                         )
                     )
 
 
                     answer = (
-                        result
+                        response
                         .choices[0]
                         .message
                         .content
                     )
 
 
-                except Exception:
+                except Exception as error:
 
+                    # Do NOT expose the token.
                     answer = (
-                        "PETORA AI is temporarily "
-                        "unavailable. Please try again."
+                        "⚠️ PETORA AI could not complete "
+                        "the request right now.\n\n"
+                        f"Model: {HF_MODEL}\n"
+                        f"Error: {type(error).__name__}: "
+                        f"{error}"
                     )
 
+
+        # ----------------------------------------------------
+        # STORE AI MESSAGE
+        # ----------------------------------------------------
 
         st.session_state.messages.append(
             {
                 "role": "assistant",
-                "content": answer,
+                "content": answer
             }
         )
+
 
         st.rerun()
 
@@ -1555,10 +1722,8 @@ with right_column:
 
 if st.session_state.lead_request:
 
-    st.markdown(
-        "<br>",
-        unsafe_allow_html=True
-    )
+    st.divider()
+
 
     st.html(
         """
@@ -1573,7 +1738,7 @@ if st.session_state.lead_request:
     )
 
 
-    lead_id = (
+    lead_puppy_id = (
         st.session_state.lead_request[
             "puppy_id"
         ]
@@ -1585,8 +1750,9 @@ if st.session_state.lead_request:
         ]
     )
 
+
     lead_puppy = find_puppy(
-        lead_id
+        lead_puppy_id
     )
 
 
@@ -1597,7 +1763,7 @@ if st.session_state.lead_request:
         )
 
         st.write(
-            f"Enquiry for **{lead_id} "
+            f"Enquiry for **{lead_puppy_id} "
             f"({lead_breed})**"
         )
 
@@ -1606,7 +1772,7 @@ if st.session_state.lead_request:
         lead_breed = ""
 
         st.write(
-            "Please specify the puppy you are interested in."
+            "Please specify which puppy you are interested in."
         )
 
 
@@ -1624,12 +1790,12 @@ if st.session_state.lead_request:
             placeholder="Enter your phone number"
         )
 
-        submit = st.form_submit_button(
+        submitted = st.form_submit_button(
             "📩 Submit Enquiry"
         )
 
 
-        if submit:
+        if submitted:
 
             if not name.strip():
 
@@ -1648,7 +1814,7 @@ if st.session_state.lead_request:
                 save_enquiry(
                     name.strip(),
                     phone.strip(),
-                    lead_id,
+                    lead_puppy_id,
                     lead_breed,
                     lead_message
                 )
@@ -1668,9 +1834,9 @@ if st.session_state.lead_request:
 
 st.html(
     """
-    <div class="trust-wrap">
+    <div class="trust-box">
 
-        <div class="trust-line">
+        <div class="trust-title">
             🐾 Wide Range of Pets
             &nbsp; • &nbsp;
             🌿 Ethical & Responsible
@@ -1680,7 +1846,7 @@ st.html(
             ❤️ Support & Guidance
         </div>
 
-        <div class="trust-note">
+        <div class="trust-text">
             PETORA is designed to grow from puppies
             into a broader pet marketplace.
         </div>
@@ -1696,13 +1862,13 @@ st.html(
 
 st.html(
     """
-    <div class="footer">
+    <div class="footer-box">
 
         <div class="footer-brand">
             PETORA™
         </div>
 
-        <div class="footer-gold">
+        <div class="footer-tagline">
             More Pets. A Wilder World.
         </div>
 
