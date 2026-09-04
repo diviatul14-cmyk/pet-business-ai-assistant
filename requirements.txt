@@ -4,3 +4,4 @@ requests
 sentence-transformers
 scikit-learn
 pillow
+huggingface_hub>=0.34,<1.0
