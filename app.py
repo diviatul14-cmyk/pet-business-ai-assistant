@@ -3,15 +3,15 @@ import re
 from datetime import datetime
 
 import pandas as pd
-import requests
 import streamlit as st
 from PIL import Image, ImageOps
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
+from huggingface_hub import InferenceClient
 
 
 # ==================================================
-# PAGE CONFIGURATION
+# PAGE CONFIG
 # ==================================================
 
 st.set_page_config(
@@ -22,7 +22,7 @@ st.set_page_config(
 
 
 # ==================================================
-# PROJECT PATH
+# PATHS
 # ==================================================
 
 BASE_DIR = os.path.dirname(
@@ -32,11 +32,6 @@ BASE_DIR = os.path.dirname(
 DATA_DIR = os.path.join(
     BASE_DIR,
     "data"
-)
-
-IMAGE_DIR = os.path.join(
-    BASE_DIR,
-    "images"
 )
 
 PUPPY_FILE = os.path.join(
@@ -56,90 +51,72 @@ ENQUIRY_FILE = os.path.join(
 
 
 # ==================================================
-# CUSTOM CSS
-# ==================================================
-
-st.markdown(
-    """
-    <style>
-
-    .main-title {
-        font-size: 42px;
-        font-weight: 700;
-        margin-bottom: 5px;
-    }
-
-    .subtitle {
-        font-size: 18px;
-        color: #666;
-        margin-bottom: 30px;
-    }
-
-    </style>
-    """,
-    unsafe_allow_html=True
-)
-
-
-# ==================================================
 # HEADER
 # ==================================================
 
-st.markdown(
-    '<div class="main-title">'
-    '🐶 Pet Business AI Assistant'
-    '</div>',
-    unsafe_allow_html=True
-)
+st.title("🐶 Pet Business AI Assistant")
 
-st.markdown(
-    '<div class="subtitle">'
-    'Find puppies, check availability, ask questions '
-    'and send an enquiry.'
-    '</div>',
-    unsafe_allow_html=True
+st.caption(
+    "Find puppies, check availability, ask questions "
+    "and send an enquiry."
 )
 
 
 # ==================================================
-# LOAD EMBEDDING MODEL
+# HUGGING FACE CLIENT
+# ==================================================
+
+try:
+
+    HF_TOKEN = st.secrets["HF_TOKEN"]
+
+    hf_client = InferenceClient(
+        api_key=HF_TOKEN,
+        provider="auto"
+    )
+
+except Exception:
+
+    HF_TOKEN = None
+    hf_client = None
+
+
+# ==================================================
+# EMBEDDING MODEL
 # ==================================================
 
 @st.cache_resource
-def load_model():
+def load_embedding_model():
 
     return SentenceTransformer(
         "all-MiniLM-L6-v2"
     )
 
 
-model = load_model()
+model = load_embedding_model()
 
 
 # ==================================================
-# LOAD KNOWLEDGE BASE
+# KNOWLEDGE BASE
 # ==================================================
 
 @st.cache_data
 def load_knowledge():
 
     if not os.path.exists(KNOWLEDGE_FILE):
-
         return []
 
     with open(
         KNOWLEDGE_FILE,
         "r",
         encoding="utf-8"
-    ) as file:
+    ) as f:
 
-        content = file.read()
-
-    chunks = content.split(".")
+        content = f.read()
 
     chunks = [
         chunk.strip()
-        for chunk in chunks
+        for chunk in content.split(".")
         if chunk.strip()
     ]
 
@@ -161,14 +138,13 @@ else:
 
 
 # ==================================================
-# LOAD PUPPY INVENTORY
+# LOAD INVENTORY
 # ==================================================
 
 @st.cache_data
 def load_inventory():
 
     if not os.path.exists(PUPPY_FILE):
-
         return pd.DataFrame()
 
     return pd.read_csv(
@@ -182,14 +158,14 @@ inventory = load_inventory()
 if inventory.empty:
 
     st.error(
-        "puppies.csv was not found."
+        "data/puppies.csv is missing or empty."
     )
 
     st.stop()
 
 
 # ==================================================
-# REQUIRED COLUMNS
+# ENSURE COLUMNS
 # ==================================================
 
 required_columns = [
@@ -247,7 +223,7 @@ inventory["age_weeks"] = pd.to_numeric(
 
 
 # ==================================================
-# CREATE ENQUIRY FILE
+# ENQUIRY FILE
 # ==================================================
 
 def ensure_enquiry_file():
@@ -334,7 +310,6 @@ def find_puppy_id(text):
 def find_puppy(puppy_id):
 
     if not puppy_id:
-
         return None
 
     matches = inventory[
@@ -435,14 +410,14 @@ else:
                 puppy["photo"]
             ).strip()
 
-
             if (
                 photo_name
                 and photo_name.lower() != "nan"
             ):
 
-                # Remove accidental leading slash
-                photo_name = photo_name.lstrip("/")
+                photo_name = photo_name.lstrip(
+                    "/"
+                )
 
                 image_path = os.path.join(
                     BASE_DIR,
@@ -465,7 +440,7 @@ else:
                         image_path
                     ).convert("RGB")
 
-                    # Same size for every puppy
+                    # Identical image dimensions
                     image = ImageOps.fit(
                         image,
                         (600, 450),
@@ -481,12 +456,11 @@ else:
                 except Exception:
 
                     st.warning(
-                        "Unable to load this image."
+                        "Could not load image."
                     )
 
             else:
 
-                # Show grey placeholder
                 placeholder = Image.new(
                     "RGB",
                     (600, 450),
@@ -498,13 +472,9 @@ else:
                     width="stretch"
                 )
 
-                st.caption(
-                    f"Photo not found: {photo_name}"
-                )
-
 
             # ------------------------------------------
-            # PUPPY INFORMATION
+            # DETAILS
             # ------------------------------------------
 
             st.subheader(
@@ -512,13 +482,11 @@ else:
             )
 
             st.write(
-                f"**Puppy ID:** "
-                f"{puppy['puppy_id']}"
+                f"**Puppy ID:** {puppy['puppy_id']}"
             )
 
             st.write(
-                f"**Gender:** "
-                f"{puppy['gender']}"
+                f"**Gender:** {puppy['gender']}"
             )
 
             st.write(
@@ -574,7 +542,7 @@ st.divider()
 
 
 # ==================================================
-# CHAT HISTORY
+# DISPLAY CHAT HISTORY
 # ==================================================
 
 for message in st.session_state.messages:
@@ -599,10 +567,6 @@ query = st.chat_input(
 
 if query:
 
-    # ----------------------------------------------
-    # SAVE USER MESSAGE
-    # ----------------------------------------------
-
     st.session_state.messages.append(
         {
             "role": "user",
@@ -610,16 +574,19 @@ if query:
         }
     )
 
+
     with st.chat_message("user"):
 
         st.write(query)
 
 
     # ----------------------------------------------
-    # FIND PUPPY
+    # EXACT PUPPY ID
     # ----------------------------------------------
 
-    puppy_id = find_puppy_id(query)
+    puppy_id = find_puppy_id(
+        query
+    )
 
     puppy = find_puppy(
         puppy_id
@@ -639,7 +606,7 @@ if query:
 
 
     # ----------------------------------------------
-    # EXACT PUPPY LOOKUP
+    # EXACT INVENTORY RESPONSE
     # ----------------------------------------------
 
     if puppy_id and puppy is not None:
@@ -648,37 +615,16 @@ if query:
             puppy["status"]
         )
 
-        breed = str(
-            puppy["breed"]
-        )
-
-        gender = str(
-            puppy["gender"]
-        )
-
-        age = puppy["age_weeks"]
-
-        price = puppy["price"]
-
-        vaccinated = str(
-            puppy["vaccinated"]
-        )
-
-        location = str(
-            puppy["location"]
-        )
-
-
         if status.lower() == "available":
 
             answer = (
                 f"**{puppy_id} is available.**\n\n"
-                f"Breed: {breed}\n\n"
-                f"Gender: {gender}\n\n"
-                f"Age: {age:.0f} weeks\n\n"
-                f"Price: ₹{price:,.0f}\n\n"
-                f"Vaccinated: {vaccinated}\n\n"
-                f"Location: {location}"
+                f"Breed: {puppy['breed']}\n\n"
+                f"Gender: {puppy['gender']}\n\n"
+                f"Age: {int(puppy['age_weeks'])} weeks\n\n"
+                f"Price: ₹{puppy['price']:,.0f}\n\n"
+                f"Vaccinated: {puppy['vaccinated']}\n\n"
+                f"Location: {puppy['location']}"
             )
 
         else:
@@ -709,7 +655,7 @@ if query:
     else:
 
         # ------------------------------------------
-        # INVENTORY QUESTIONS
+        # BUILD RAG CONTEXT
         # ------------------------------------------
 
         inventory_keywords = [
@@ -729,17 +675,10 @@ if query:
         ]
 
 
-        is_inventory_question = any(
+        if any(
             word in query.lower()
             for word in inventory_keywords
-        )
-
-
-        # ------------------------------------------
-        # RETRIEVE CONTEXT
-        # ------------------------------------------
-
-        if is_inventory_question:
+        ):
 
             context = (
                 "Current puppy inventory:\n\n"
@@ -774,37 +713,49 @@ if query:
 
 
         # ------------------------------------------
-        # LOCAL LLAMA
+        # HUGGING FACE CHAT
         # ------------------------------------------
 
-        try:
+        if hf_client is None:
 
-            response = requests.post(
-                "http://localhost:11434/api/chat",
-                json={
-                    "model": "llama3.2:3b",
-                    "messages": [
-                        {
-                            "role": "system",
-                            "content": (
-                                "You are a helpful pet "
-                                "business assistant. "
-                                "Use ONLY the provided "
-                                "context. "
-                                "Do not invent prices, "
-                                "availability, ages, "
-                                "breeds, vaccination "
-                                "information or other "
-                                "business facts. "
-                                "If the information is "
-                                "not in the context, say: "
-                                "'I don't know based on "
-                                "the available information.'"
-                            )
-                        },
-                        {
-                            "role": "user",
-                            "content": f"""
+            answer = (
+                "The AI service is not configured. "
+                "Please check the HF_TOKEN secret "
+                "in Streamlit."
+            )
+
+        else:
+
+            try:
+
+                completion = (
+                    hf_client.chat.completions.create(
+                        model=(
+                            "Qwen/"
+                            "Qwen2.5-7B-Instruct-1M"
+                        ),
+                        messages=[
+                            {
+                                "role": "system",
+                                "content": (
+                                    "You are a helpful "
+                                    "pet business assistant. "
+                                    "Use ONLY the provided "
+                                    "context. "
+                                    "Never invent prices, "
+                                    "availability, ages, "
+                                    "breeds, vaccination "
+                                    "information or other "
+                                    "business facts. "
+                                    "If the answer is not "
+                                    "in the context, say: "
+                                    "'I don't know based on "
+                                    "the available information.'"
+                                )
+                            },
+                            {
+                                "role": "user",
+                                "content": f"""
 Context:
 
 {context}
@@ -813,29 +764,26 @@ Question:
 
 {query}
 """
-                        }
-                    ],
-                    "stream": False
-                },
-                timeout=120
-            )
+                            }
+                        ],
+                        max_tokens=300,
+                        temperature=0.2
+                    )
+                )
 
-            response.raise_for_status()
+                answer = (
+                    completion.choices[0]
+                    .message
+                    .content
+                )
 
-            result = response.json()
+            except Exception as error:
 
-            answer = result[
-                "message"
-            ][
-                "content"
-            ]
-
-        except requests.RequestException:
-
-            answer = (
-                "The local AI model is not available. "
-                "Please make sure Ollama is running."
-            )
+                answer = (
+                    "Sorry, the cloud AI service "
+                    "could not answer right now.\n\n"
+                    f"Error: {error}"
+                )
 
 
         with st.chat_message(
