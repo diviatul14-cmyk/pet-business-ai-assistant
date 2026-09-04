@@ -1,0 +1,6 @@
+date,name,phone,puppy_id,breed,message,status
+2026-09-04 10:00:00,Rahul,9999999999,ST001,Shih Tzu,Interested in buying this puppy,New
+2026-09-04 10:05:00,Amit,8888888888,ST002,Shih Tzu,Interested in this puppy,New
+2026-09-04 10:10:00,Neha,7777777777,GS001,German Shepherd,Interested in German Shepherd,New
+2026-09-04 10:15:00,Priya,6666666666,ST001,Shih Tzu,Want more information,Contacted
+2026-09-04 10:20:00,Arjun,5555555555,GS001,German Shepherd,Checking availability,New

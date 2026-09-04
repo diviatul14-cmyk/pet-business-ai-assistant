@@ -1,0 +1,5 @@
+puppy_id,breed,gender,age_weeks,price,status,vaccinated,location,photo
+ST001,Shih Tzu,Male,8,18000,Available,Yes,Patna,images/ST001.jpg
+ST002,Shih Tzu,Female,9,20000,Available,Yes,Patna,images/ST002.jpg
+GS001,German Shepherd,Male,10,25000,Available,Yes,Patna,images/GS001.jpg
+GS002,German Shepherd,Female,11,28000,Sold,Yes,Patna,images/GS002.jpg
