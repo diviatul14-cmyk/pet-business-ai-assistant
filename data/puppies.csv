@@ -1,5 +1,9 @@
-pet_id,category,breed,name,gender,age,price,status,vaccinated,location,photo
-ST001,Dogs,Shih Tzu,Lucky,Male,8 weeks,18000,Available,Yes,Patna,images/ST001.jpg
-ST002,Dogs,Shih Tzu,Bella,Female,9 weeks,20000,Available,Yes,Patna,images/ST002.jpg
-GS001,Dogs,German Shepherd,Rocky,Male,10 weeks,25000,Available,Yes,Patna,images/GS001.jpg
-GS002,Dogs,German Shepherd,Luna,Female,11 weeks,28000,Sold,Yes,Patna,
+pet_id,category,species,breed,name,gender,age,price,status,vaccinated,location,photo,description
+ST001,Dogs,Dog,Shih Tzu,Lucky,Male,8 weeks,19000,Available,Yes,Patna,images/ST001.jpg,Friendly Shih Tzu companion suitable for a loving home.
+ST002,Dogs,Dog,Shih Tzu,Bella,Female,9 weeks,20000,Available,Yes,Patna,images/ST002.jpg,Playful Shih Tzu companion with a gentle temperament.
+GS001,Dogs,Dog,German Shepherd,Rocky,Male,10 weeks,25000,Available,Yes,Patna,images/GS001.jpg,Active German Shepherd companion with a confident and social nature.
+GS002,Dogs,Dog,German Shepherd,Luna,Female,11 weeks,28000,Sold,Yes,Patna,,German Shepherd listing currently marked as sold.
+CAT001,Cats,Cat,Persian,Milo,Male,12 weeks,22000,Available,,Patna,,Demo listing for a Persian cat.
+CAT002,Cats,Cat,Bengal,Cleo,Female,14 weeks,26000,Available,,Patna,,Demo listing for a Bengal cat.
+AQ001,Aquatics,Fish,Arowana,Silver,Unknown,Adult,35000,Available,,Patna,,Demo aquatic listing for an Arowana.
+AQ002,Aquatics,Fish,Flowerhorn,Red,Unknown,Juvenile,12000,Available,,Patna,,Demo aquatic listing for a Flowerhorn.

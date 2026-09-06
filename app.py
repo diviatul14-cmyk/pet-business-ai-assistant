@@ -4,6 +4,7 @@ import html
 import base64
 import textwrap
 from datetime import datetime
+from urllib.parse import quote
 
 import pandas as pd
 import streamlit as st
@@ -11,6 +12,7 @@ from PIL import Image, ImageOps
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 from huggingface_hub import InferenceClient
+from streamlit_gsheets import GSheetsConnection
 
 
 # =========================================================
@@ -29,28 +31,71 @@ st.set_page_config(
 # PATHS
 # =========================================================
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = os.path.dirname(
+    os.path.abspath(__file__)
+)
 
-DATA_DIR = os.path.join(BASE_DIR, "data")
-IMAGE_DIR = os.path.join(BASE_DIR, "images")
+DATA_DIR = os.path.join(
+    BASE_DIR,
+    "data",
+)
 
-INVENTORY_FILE = os.path.join(DATA_DIR, "puppies.csv")
-ENQUIRY_FILE = os.path.join(DATA_DIR, "enquiries.csv")
-INFO_FILE = os.path.join(DATA_DIR, "info.text")
+IMAGE_DIR = os.path.join(
+    BASE_DIR,
+    "images",
+)
 
-LOGO_FILE = os.path.join(IMAGE_DIR, "petora-logo.png")
+INVENTORY_FILE = os.path.join(
+    DATA_DIR,
+    "puppies.csv",
+)
+
+ENQUIRY_FILE = os.path.join(
+    DATA_DIR,
+    "enquiries.csv",
+)
+
+INFO_FILE = os.path.join(
+    DATA_DIR,
+    "info.text",
+)
+
+LOGO_FILE = os.path.join(
+    IMAGE_DIR,
+    "petora-logo.png",
+)
 
 
 # =========================================================
-# AI CONFIG
+# AI
 # =========================================================
 
 HF_MODEL = "deepseek-ai/DeepSeek-V3-0324"
 
 try:
-    HF_TOKEN = st.secrets["HF_TOKEN"]
+    HF_TOKEN = str(
+        st.secrets["HF_TOKEN"]
+    ).strip()
 except Exception:
-    HF_TOKEN = os.getenv("HF_TOKEN", "")
+    HF_TOKEN = os.getenv(
+        "HF_TOKEN",
+        "",
+    ).strip()
+
+
+# =========================================================
+# WHATSAPP
+# =========================================================
+
+try:
+    PETORA_WHATSAPP_NUMBER = str(
+        st.secrets["PETORA_WHATSAPP_NUMBER"]
+    ).strip()
+except Exception:
+    PETORA_WHATSAPP_NUMBER = os.getenv(
+        "PETORA_WHATSAPP_NUMBER",
+        "",
+    ).strip()
 
 
 # =========================================================
@@ -71,18 +116,19 @@ if "detail_pet_id" not in st.session_state:
 
 
 # =========================================================
-# HTML RENDER HELPER
+# HTML
 # =========================================================
 
 def render_html(content):
-    """Render custom HTML safely."""
     st.html(
-        textwrap.dedent(content).strip()
+        textwrap.dedent(
+            content
+        ).strip()
     )
 
 
 # =========================================================
-# GLOBAL CSS
+# CSS
 # =========================================================
 
 render_html(
@@ -92,10 +138,6 @@ render_html(
     @import url(
         'https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap'
     );
-
-    /* =====================================================
-       GLOBAL
-       ===================================================== */
 
     html,
     body,
@@ -111,6 +153,7 @@ render_html(
                 transparent 30%
             ),
             #f8f6ef;
+
         color: #123b2b;
     }
 
@@ -120,10 +163,7 @@ render_html(
         padding-bottom: 3rem;
     }
 
-    #MainMenu {
-        visibility: hidden;
-    }
-
+    #MainMenu,
     footer {
         visibility: hidden;
     }
@@ -142,16 +182,16 @@ render_html(
         align-items: center;
         justify-content: space-between;
 
-        width: 100%;
-        box-sizing: border-box;
-
         gap: 30px;
 
         padding: 16px 25px;
 
-        background: rgba(255,255,255,0.97);
+        background:
+            rgba(255,255,255,0.97);
 
-        border: 1px solid #e7e2d5;
+        border:
+            1px solid #e7e2d5;
+
         border-radius: 22px;
 
         box-shadow:
@@ -169,18 +209,19 @@ render_html(
     .petora-logo-small {
         width: 76px;
         height: 76px;
+
         object-fit: contain;
+
         border-radius: 12px;
-        display: block;
     }
 
     .brand-title {
-        font-family: 'Playfair Display', serif;
+        font-family:
+            'Playfair Display',
+            serif;
 
         font-size: 32px;
         font-weight: 700;
-
-        line-height: 1;
 
         color: #0c4a32;
     }
@@ -210,13 +251,10 @@ render_html(
 
 
     /* =====================================================
-       NAVIGATION
+       NAV
        ===================================================== */
 
     .nav-wrap {
-        width: 100%;
-        box-sizing: border-box;
-
         background: #0b4a30;
 
         border-radius: 17px;
@@ -258,7 +296,8 @@ render_html(
     }
 
     .nav-item:hover {
-        background: rgba(255,255,255,0.14);
+        background:
+            rgba(255,255,255,0.14);
     }
 
 
@@ -277,7 +316,8 @@ render_html(
 
         border-radius: 30px;
 
-        border: 1px solid #e4ded0;
+        border:
+            1px solid #e4ded0;
 
         background:
             radial-gradient(
@@ -320,11 +360,14 @@ render_html(
     }
 
     .hero-title {
-        font-family: 'Playfair Display', serif;
+        font-family:
+            'Playfair Display',
+            serif;
 
         color: #0a4831;
 
-        font-size: clamp(43px,5vw,67px);
+        font-size:
+            clamp(43px,5vw,67px);
 
         line-height: 1.02;
 
@@ -381,16 +424,19 @@ render_html(
 
         color: #0b4a30 !important;
 
-        border: 1px solid #d9ddcf;
+        border:
+            1px solid #d9ddcf;
     }
 
     .hero-orbit {
         position: absolute;
 
         right: -65px;
+
         top: 8px;
 
         width: 450px;
+
         height: 450px;
 
         border-radius: 50%;
@@ -416,7 +462,9 @@ render_html(
             1px solid rgba(123,155,128,0.20);
 
         display: flex;
+
         align-items: center;
+
         justify-content: center;
 
         font-size: 105px;
@@ -428,6 +476,7 @@ render_html(
         position: absolute;
 
         right: 72px;
+
         bottom: 32px;
 
         background: white;
@@ -468,7 +517,9 @@ render_html(
     .section-title {
         color: #104a34;
 
-        font-family: 'Playfair Display', serif;
+        font-family:
+            'Playfair Display',
+            serif;
 
         font-size: 31px;
 
@@ -491,7 +542,8 @@ render_html(
     .search-section {
         background: white;
 
-        border: 1px solid #e5e0d4;
+        border:
+            1px solid #e5e0d4;
 
         border-radius: 22px;
 
@@ -500,7 +552,7 @@ render_html(
         box-shadow:
             0 8px 28px rgba(18,59,43,0.05);
 
-        margin-bottom: 25px;
+        margin-bottom: 15px;
     }
 
 
@@ -517,7 +569,8 @@ render_html(
 
         background: white;
 
-        border: 1px solid #e6e1d5;
+        border:
+            1px solid #e6e1d5;
 
         border-radius: 20px;
 
@@ -528,7 +581,8 @@ render_html(
     }
 
     .category-card.active {
-        border: 2px solid #0b4a30;
+        border:
+            2px solid #0b4a30;
 
         background:
             linear-gradient(
@@ -536,13 +590,11 @@ render_html(
                 #f7fbf4,
                 #edf5ea
             );
-
-        box-shadow:
-            0 12px 32px rgba(11,74,48,0.12);
     }
 
     .category-icon {
         font-size: 38px;
+
         margin-bottom: 11px;
     }
 
@@ -585,6 +637,20 @@ render_html(
         margin-bottom: 8px;
     }
 
+    .pet-category {
+        color: #a77a18;
+
+        font-size: 11px;
+
+        font-weight: 800;
+
+        letter-spacing: 0.8px;
+
+        text-transform: uppercase;
+
+        margin-bottom: 5px;
+    }
+
     .pet-breed {
         font-size: 21px;
 
@@ -596,9 +662,9 @@ render_html(
     .pet-name {
         color: #68766c;
 
-        font-size: 13px;
+        font-size: 14px;
 
-        font-weight: 600;
+        font-weight: 700;
 
         margin-top: 3px;
     }
@@ -655,10 +721,10 @@ render_html(
 
 
     /* =====================================================
-       PET DETAIL
+       DETAIL
        ===================================================== */
 
-    .detail-shell {
+    .detail-panel {
         background: white;
 
         border:
@@ -671,9 +737,7 @@ render_html(
         box-shadow:
             0 15px 45px rgba(18,59,43,0.08);
 
-        margin-top: 15px;
-
-        margin-bottom: 35px;
+        margin-bottom: 20px;
     }
 
     .detail-kicker {
@@ -693,13 +757,13 @@ render_html(
     .detail-title {
         color: #104a34;
 
-        font-family: 'Playfair Display', serif;
+        font-family:
+            'Playfair Display',
+            serif;
 
         font-size: 40px;
 
         line-height: 1.1;
-
-        margin: 0;
     }
 
     .detail-subtitle {
@@ -810,7 +874,7 @@ render_html(
         box-shadow:
             0 15px 45px rgba(9,59,41,0.20);
 
-        min-height: 325px;
+        min-height: 350px;
 
         box-sizing: border-box;
     }
@@ -835,7 +899,9 @@ render_html(
     }
 
     .ai-title {
-        font-family: 'Playfair Display', serif;
+        font-family:
+            'Playfair Display',
+            serif;
 
         font-size: 33px;
 
@@ -843,7 +909,8 @@ render_html(
     }
 
     .ai-copy {
-        color: rgba(255,255,255,0.76);
+        color:
+            rgba(255,255,255,0.76);
 
         font-size: 14px;
 
@@ -852,7 +919,7 @@ render_html(
 
 
     /* =====================================================
-       SMART SEARCH RESULT
+       SMART RESULT
        ===================================================== */
 
     .smart-result {
@@ -877,6 +944,41 @@ render_html(
         font-size: 14px;
 
         line-height: 1.7;
+    }
+
+
+    /* =====================================================
+       WHATSAPP
+       ===================================================== */
+
+    .whatsapp-button {
+        display: block;
+
+        width: 100%;
+
+        box-sizing: border-box;
+
+        margin-top: 10px;
+
+        padding: 12px 16px;
+
+        background: #25D366;
+
+        color: white !important;
+
+        text-align: center;
+
+        text-decoration: none !important;
+
+        border-radius: 11px;
+
+        font-weight: 800;
+
+        font-size: 14px;
+    }
+
+    .whatsapp-button:hover {
+        background: #20bd5b;
     }
 
 
@@ -940,19 +1042,20 @@ render_html(
 
         background: #0a3f2b;
 
-        color: rgba(255,255,255,0.80);
+        color:
+            rgba(255,255,255,0.80);
 
         border-radius: 24px;
 
         padding: 30px;
-
-        box-sizing: border-box;
     }
 
     .footer-brand {
         color: white;
 
-        font-family: 'Playfair Display', serif;
+        font-family:
+            'Playfair Display',
+            serif;
 
         font-size: 29px;
 
@@ -977,20 +1080,8 @@ render_html(
 
         font-size: 11px;
 
-        color: rgba(255,255,255,0.55);
-    }
-
-
-    /* =====================================================
-       BUTTONS
-       ===================================================== */
-
-    .stButton > button {
-        border-radius: 11px;
-
-        min-height: 42px;
-
-        font-weight: 700;
+        color:
+            rgba(255,255,255,0.55);
     }
 
 
@@ -1096,62 +1187,278 @@ def prepare_image(path):
 
 
 # =========================================================
-# INVENTORY
+# GOOGLE SHEETS CONNECTION
 # =========================================================
 
-def load_inventory():
+def get_gsheets_connection():
+
+    try:
+
+        return st.connection(
+            "gsheets",
+            type=GSheetsConnection,
+        )
+
+    except Exception:
+
+        return None
+
+
+def read_google_sheet(
+    worksheet_name,
+):
+
+    conn = get_gsheets_connection()
+
+    if conn is None:
+        return None
+
+    try:
+
+        df = conn.read(
+            worksheet=worksheet_name,
+            ttl=0,
+        )
+
+        return df.copy()
+
+    except Exception as exc:
+
+        st.session_state[
+            "gsheets_last_error"
+        ] = str(exc)
+
+        return None
+
+
+def write_google_sheet(
+    worksheet_name,
+    dataframe,
+):
+
+    conn = get_gsheets_connection()
+
+    if conn is None:
+        return False
+
+    try:
+
+        conn.update(
+            worksheet=worksheet_name,
+            data=dataframe,
+        )
+
+        return True
+
+    except Exception as exc:
+
+        st.session_state[
+            "gsheets_last_error"
+        ] = str(exc)
+
+        return False
+
+
+# =========================================================
+# INVENTORY NORMALIZATION
+# =========================================================
+
+INVENTORY_COLUMNS = [
+    "pet_id",
+    "category",
+    "species",
+    "breed",
+    "name",
+    "gender",
+    "age",
+    "price",
+    "status",
+    "vaccinated",
+    "location",
+    "photo",
+    "description",
+]
+
+
+def normalize_inventory(
+    df,
+):
+
+    if df is None:
+
+        return pd.DataFrame(
+            columns=INVENTORY_COLUMNS
+        )
+
+    df = df.copy()
+
+    for column in INVENTORY_COLUMNS:
+
+        if column not in df.columns:
+
+            df[column] = ""
+
+    df = df[
+        INVENTORY_COLUMNS
+    ]
+
+    for column in [
+        "pet_id",
+        "category",
+        "species",
+        "breed",
+        "name",
+        "gender",
+        "age",
+        "status",
+        "vaccinated",
+        "location",
+        "photo",
+        "description",
+    ]:
+
+        df[column] = (
+            df[column]
+            .fillna("")
+            .astype(str)
+            .str.strip()
+        )
+
+    df["price"] = pd.to_numeric(
+        df["price"],
+        errors="coerce",
+    ).fillna(0)
+
+    return df.reset_index(
+        drop=True
+    )
+
+
+# =========================================================
+# LOAD INVENTORY
+# =========================================================
+
+def load_local_inventory():
 
     if not os.path.exists(
         INVENTORY_FILE
     ):
 
-        return pd.DataFrame()
+        return pd.DataFrame(
+            columns=INVENTORY_COLUMNS
+        )
 
     try:
 
-        df = pd.read_csv(
-            INVENTORY_FILE
+        return normalize_inventory(
+            pd.read_csv(
+                INVENTORY_FILE
+            )
         )
 
-        required_columns = [
-            "pet_id",
-            "category",
-            "breed",
-            "name",
-            "gender",
-            "age",
-            "price",
-            "status",
-            "vaccinated",
-            "location",
-            "photo",
-        ]
+    except Exception:
 
-        for column in required_columns:
-
-            if column not in df.columns:
-
-                df[column] = ""
-
-        return df[
-            required_columns
-        ].copy()
-
-    except Exception as exc:
-
-        st.error(
-            f"Could not load inventory: {exc}"
+        return pd.DataFrame(
+            columns=INVENTORY_COLUMNS
         )
 
-        return pd.DataFrame()
+
+def load_inventory():
+
+    cloud_inventory = (
+        read_google_sheet(
+            "Inventory"
+        )
+    )
+
+    if (
+        cloud_inventory is not None
+        and not cloud_inventory.empty
+    ):
+
+        return normalize_inventory(
+            cloud_inventory
+        )
+
+    return load_local_inventory()
 
 
 inventory = load_inventory()
 
 
 # =========================================================
-# ENQUIRY
+# ENQUIRIES
 # =========================================================
+
+ENQUIRY_COLUMNS = [
+    "date",
+    "name",
+    "phone",
+    "pet_id",
+    "breed",
+    "message",
+    "status",
+]
+
+
+def normalize_enquiries(
+    df,
+):
+
+    if df is None:
+
+        return pd.DataFrame(
+            columns=ENQUIRY_COLUMNS
+        )
+
+    df = df.copy()
+
+    for column in ENQUIRY_COLUMNS:
+
+        if column not in df.columns:
+
+            df[column] = ""
+
+    df = df[
+        ENQUIRY_COLUMNS
+    ]
+
+    for column in ENQUIRY_COLUMNS:
+
+        df[column] = (
+            df[column]
+            .fillna("")
+            .astype(str)
+            .str.strip()
+        )
+
+    return df
+
+
+def load_local_enquiries():
+
+    if not os.path.exists(
+        ENQUIRY_FILE
+    ):
+
+        return pd.DataFrame(
+            columns=ENQUIRY_COLUMNS
+        )
+
+    try:
+
+        return normalize_enquiries(
+            pd.read_csv(
+                ENQUIRY_FILE
+            )
+        )
+
+    except Exception:
+
+        return pd.DataFrame(
+            columns=ENQUIRY_COLUMNS
+        )
+
 
 def save_enquiry(
     name,
@@ -1177,27 +1484,50 @@ def save_enquiry(
         ]
     )
 
-    if os.path.exists(
-        ENQUIRY_FILE
-    ):
 
-        try:
+    # -----------------------------------------------------
+    # Try Google Sheets first
+    # -----------------------------------------------------
 
-            existing = pd.read_csv(
-                ENQUIRY_FILE
-            )
+    cloud_enquiries = (
+        read_google_sheet(
+            "Enquiries"
+        )
+    )
 
-        except Exception:
+    if cloud_enquiries is not None:
 
-            existing = pd.DataFrame()
+        existing = normalize_enquiries(
+            cloud_enquiries
+        )
 
-    else:
+        result = pd.concat(
+            [
+                existing,
+                new_row,
+            ],
+            ignore_index=True,
+        )
 
-        existing = pd.DataFrame()
+        if write_google_sheet(
+            "Enquiries",
+            result,
+        ):
 
-    result = pd.concat(
+            return True
+
+
+    # -----------------------------------------------------
+    # Local CSV fallback
+    # -----------------------------------------------------
+
+    existing_local = (
+        load_local_enquiries()
+    )
+
+    result_local = pd.concat(
         [
-            existing,
+            existing_local,
             new_row,
         ],
         ignore_index=True,
@@ -1208,9 +1538,99 @@ def save_enquiry(
         exist_ok=True,
     )
 
-    result.to_csv(
+    result_local.to_csv(
         ENQUIRY_FILE,
         index=False,
+    )
+
+    return False
+
+
+# =========================================================
+# WHATSAPP
+# =========================================================
+
+def build_whatsapp_link(
+    pet,
+):
+
+    number = PETORA_WHATSAPP_NUMBER
+
+    if not number:
+        return ""
+
+    pet_id = str(
+        pet.get(
+            "pet_id",
+            "",
+        )
+    ).strip()
+
+    category = str(
+        pet.get(
+            "category",
+            "",
+        )
+    ).strip()
+
+    breed = str(
+        pet.get(
+            "breed",
+            "",
+        )
+    ).strip()
+
+    name = str(
+        pet.get(
+            "name",
+            "",
+        )
+    ).strip()
+
+    price = format_price(
+        pet.get(
+            "price",
+            "",
+        )
+    )
+
+    location = str(
+        pet.get(
+            "location",
+            "",
+        )
+    ).strip()
+
+    message = (
+        "Hi PETORA, I'm interested in "
+        f"{name} ({pet_id}), "
+        f"{breed}, "
+        f"{category}, "
+        f"listed at {price}."
+    )
+
+    if location:
+
+        message += (
+            f" Is this pet currently available "
+            f"in {location}?"
+        )
+
+    else:
+
+        message += (
+            " Is this pet currently available?"
+        )
+
+    message += (
+        " Please share more details."
+    )
+
+    return (
+        "https://wa.me/"
+        f"{number}"
+        "?text="
+        f"{quote(message)}"
     )
 
 
@@ -1284,7 +1704,7 @@ def load_knowledge_chunks():
 
 @st.cache_data
 def build_knowledge_embeddings(
-    chunks
+    chunks,
 ):
 
     if not chunks:
@@ -1353,7 +1773,7 @@ def rag_search(
 
 
 # =========================================================
-# HUGGING FACE AI
+# HUGGING FACE
 # =========================================================
 
 def ask_ai(
@@ -1378,24 +1798,24 @@ def ask_ai(
         system_prompt = """
 You are PETORA AI, a friendly pet marketplace assistant.
 
-Help customers understand:
+Help customers with:
 - pets
-- breeds
+- breeds and species
 - basic pet information
 - responsible pet ownership
 - PETORA services
 
 Use the supplied context when relevant.
 
-Never invent inventory information.
+Never invent PETORA inventory.
 
-Exact inventory information is handled by the application.
+Actual inventory is handled separately by the application.
 
-Be concise, friendly, professional and helpful.
+Be concise, friendly and professional.
 
 Do not claim that PETORA guarantees health,
 delivery, availability or legality unless
-that information is explicitly provided.
+explicit information is available.
 """
 
         messages = [
@@ -1436,19 +1856,13 @@ that information is explicitly provided.
 
 
 # =========================================================
-# AI SMART SEARCH
+# SMART SEARCH
 # =========================================================
 
 def smart_search_inventory(
     question,
     inventory_df,
 ):
-    """
-    Interpret a natural-language pet search and filter
-    the actual inventory dataframe.
-
-    AI is NOT used to invent listings.
-    """
 
     if inventory_df.empty:
 
@@ -1456,7 +1870,11 @@ def smart_search_inventory(
 
     result = inventory_df.copy()
 
-    q = question.lower().strip()
+    q = (
+        str(question)
+        .lower()
+        .strip()
+    )
 
 
     # -----------------------------------------------------
@@ -1508,13 +1926,8 @@ def smart_search_inventory(
     # -----------------------------------------------------
 
     category_terms = {
-        "dogs": "Dogs",
-        "dog": "Dogs",
-        "puppies": "Dogs",
-        "puppy": "Dogs",
-
-        "cats": "Cats",
-        "cat": "Cats",
+        "exotic pets": "Exotic Pets",
+        "exotic": "Exotic Pets",
 
         "aquatics": "Aquatics",
         "aquatic": "Aquatics",
@@ -1523,20 +1936,22 @@ def smart_search_inventory(
         "reptiles": "Reptiles",
         "reptile": "Reptiles",
 
-        "exotic pets": "Exotic Pets",
-        "exotic": "Exotic Pets",
+        "cats": "Cats",
+        "cat": "Cats",
+
+        "dogs": "Dogs",
+        "dog": "Dogs",
+        "puppies": "Dogs",
+        "puppy": "Dogs",
     }
 
     detected_category = None
 
-    # Check longer phrases first
-    category_keys = sorted(
-        category_terms.keys(),
+    for term in sorted(
+        category_terms,
         key=len,
         reverse=True,
-    )
-
-    for term in category_keys:
+    ):
 
         if re.search(
             rf"\b{re.escape(term)}\b",
@@ -1562,109 +1977,123 @@ def smart_search_inventory(
 
 
     # -----------------------------------------------------
+    # SPECIES
+    # -----------------------------------------------------
+
+    for species in sorted(
+        inventory_df["species"]
+        .dropna()
+        .astype(str)
+        .str.strip()
+        .unique(),
+        key=len,
+        reverse=True,
+    ):
+
+        if (
+            species
+            and species.lower() in q
+        ):
+
+            result = result[
+                result["species"]
+                .astype(str)
+                .str.lower()
+                .str.strip()
+                ==
+                species.lower()
+            ]
+
+            break
+
+
+    # -----------------------------------------------------
     # BREED
     # -----------------------------------------------------
 
-    if "breed" in result.columns:
+    for breed in sorted(
+        inventory_df["breed"]
+        .dropna()
+        .astype(str)
+        .str.strip()
+        .unique(),
+        key=len,
+        reverse=True,
+    ):
 
-        all_breeds = (
-            inventory_df["breed"]
-            .dropna()
-            .astype(str)
-            .str.strip()
-            .unique()
-        )
+        if (
+            breed
+            and breed.lower() in q
+        ):
 
-        # Longer breed names first
-        breeds_sorted = sorted(
-            all_breeds,
-            key=len,
-            reverse=True,
-        )
+            result = result[
+                result["breed"]
+                .astype(str)
+                .str.lower()
+                .str.strip()
+                ==
+                breed.lower()
+            ]
 
-        for breed in breeds_sorted:
-
-            if not breed:
-                continue
-
-            if breed.lower() in q:
-
-                result = result[
-                    result["breed"]
-                    .astype(str)
-                    .str.lower()
-                    .str.strip()
-                    ==
-                    breed.lower()
-                ]
-
-                break
+            break
 
 
     # -----------------------------------------------------
-    # PET NAME
+    # NAME
     # -----------------------------------------------------
 
-    if "name" in result.columns:
+    for pet_name in (
+        inventory_df["name"]
+        .dropna()
+        .astype(str)
+        .str.strip()
+        .unique()
+    ):
 
-        all_names = (
-            inventory_df["name"]
-            .dropna()
-            .astype(str)
-            .str.strip()
-            .unique()
-        )
+        if (
+            pet_name
+            and pet_name.lower() in q
+        ):
 
-        for pet_name in all_names:
+            result = result[
+                result["name"]
+                .astype(str)
+                .str.lower()
+                .str.strip()
+                ==
+                pet_name.lower()
+            ]
 
-            if (
-                pet_name
-                and pet_name.lower() in q
-            ):
-
-                result = result[
-                    result["name"]
-                    .astype(str)
-                    .str.lower()
-                    .str.strip()
-                    ==
-                    pet_name.lower()
-                ]
-
-                break
+            break
 
 
     # -----------------------------------------------------
     # LOCATION
     # -----------------------------------------------------
 
-    if "location" in result.columns:
+    for location in (
+        inventory_df["location"]
+        .dropna()
+        .astype(str)
+        .str.strip()
+        .unique()
+    ):
 
-        all_locations = (
-            inventory_df["location"]
-            .dropna()
-            .astype(str)
-            .str.strip()
-            .unique()
-        )
+        if (
+            location
+            and location.lower() in q
+        ):
 
-        for location in all_locations:
+            result = result[
+                result["location"]
+                .astype(str)
+                .str.lower()
+                .str.strip()
+                ==
+                location.lower()
+            ]
 
-            if (
-                location
-                and location.lower() in q
-            ):
-
-                result = result[
-                    result["location"]
-                    .astype(str)
-                    .str.lower()
-                    .str.strip()
-                    ==
-                    location.lower()
-                ]
-
-                break
+            break
 
 
     # -----------------------------------------------------
@@ -1688,7 +2117,6 @@ def smart_search_inventory(
         r"maximum\s*[₹rs.]?\s*([\d,]+)",
 
         r"max\s*[₹rs.]?\s*([\d,]+)",
-
     ]
 
     max_price = None
@@ -1724,8 +2152,7 @@ def smart_search_inventory(
         )
 
         result = result[
-            numeric_prices
-            <= max_price
+            numeric_prices <= max_price
         ]
 
 
@@ -1735,16 +2162,13 @@ def smart_search_inventory(
 
 
 # =========================================================
-# PET CARD FUNCTION
+# PET CARD RENDERER
 # =========================================================
 
 def render_pet_cards(
     pet_dataframe,
     prefix="pet",
 ):
-    """
-    Render inventory records as PETORA cards.
-    """
 
     if pet_dataframe.empty:
 
@@ -1782,10 +2206,6 @@ def render_pet_cards(
         ):
 
             with column:
-
-                # -------------------------------------------------
-                # IMAGE
-                # -------------------------------------------------
 
                 photo = str(
                     pet.get(
@@ -1825,17 +2245,45 @@ def render_pet_cards(
                     )
 
 
+                # -------------------------------------------------
+                # IMAGE
+                # -------------------------------------------------
+
                 if image is not None:
 
                     st.image(
                         image,
-                        use_container_width=True,
+                        width="stretch",
                     )
 
                 else:
 
+                    category_text = str(
+                        pet.get(
+                            "category",
+                            "",
+                        )
+                    ).lower()
+
+                    placeholder = "🐾"
+
+                    if "dog" in category_text:
+                        placeholder = "🐶"
+
+                    elif "cat" in category_text:
+                        placeholder = "🐱"
+
+                    elif "aquatic" in category_text:
+                        placeholder = "🐟"
+
+                    elif "reptile" in category_text:
+                        placeholder = "🐍"
+
+                    elif "exotic" in category_text:
+                        placeholder = "🦜"
+
                     render_html(
-                        """
+                        f"""
                         <div
                             style="
                                 height:260px;
@@ -1847,104 +2295,44 @@ def render_pet_cards(
                                 border-radius:20px 20px 0 0;
                             "
                         >
-                            🐾
+                            {placeholder}
                         </div>
                         """
                     )
 
 
                 # -------------------------------------------------
-                # DETAILS
+                # INFORMATION
                 # -------------------------------------------------
-
-                pet_id = safe_text(
-                    pet.get(
-                        "pet_id",
-                        "",
-                    )
-                )
-
-                breed = safe_text(
-                    pet.get(
-                        "breed",
-                        "",
-                    )
-                )
-
-                name = safe_text(
-                    pet.get(
-                        "name",
-                        "",
-                    )
-                )
-
-                gender = safe_text(
-                    pet.get(
-                        "gender",
-                        "",
-                    )
-                )
-
-                age = safe_text(
-                    pet.get(
-                        "age",
-                        "",
-                    )
-                )
-
-                location = safe_text(
-                    pet.get(
-                        "location",
-                        "",
-                    )
-                )
-
-                vaccinated = safe_text(
-                    pet.get(
-                        "vaccinated",
-                        "",
-                    )
-                )
-
-                category = safe_text(
-                    pet.get(
-                        "category",
-                        "",
-                    )
-                )
-
-                price = format_price(
-                    pet.get(
-                        "price",
-                        "",
-                    )
-                )
-
 
                 render_html(
                     f"""
                     <div class="pet-body">
 
+                        <div class="pet-category">
+                            {safe_text(pet["category"])}
+                        </div>
+
                         <div class="pet-breed">
-                            {breed}
+                            {safe_text(pet["breed"])}
                         </div>
 
                         <div class="pet-name">
-                            {name}
+                            {safe_text(pet["name"])}
                         </div>
 
                         <div class="pet-id">
-                            ID: {pet_id}
+                            ID: {safe_text(pet["pet_id"])}
                         </div>
 
                         <div class="pet-meta">
 
                             <span>
-                                👤 {gender}
+                                🐾 {safe_text(pet["species"])}
                             </span>
 
                             <span>
-                                📅 {age}
+                                👤 {safe_text(pet["gender"])}
                             </span>
 
                         </div>
@@ -1952,21 +2340,31 @@ def render_pet_cards(
                         <div class="pet-meta">
 
                             <span>
-                                📍 {location}
+                                📅 {safe_text(pet["age"])}
                             </span>
 
                             <span>
-                                💉 {vaccinated}
+                                📍 {safe_text(pet["location"])}
                             </span>
+
+                        </div>
+
+                        <div class="pet-meta">
+
+                            <span>
+                                💉 {safe_text(pet["vaccinated"])}
+                            </span>
+
+                            <span></span>
 
                         </div>
 
                         <div class="pet-price">
-                            {price}
+                            {format_price(pet["price"])}
                         </div>
 
                         <div class="available-badge">
-                            ✓ Available · {category}
+                            ✓ Available
                         </div>
 
                     </div>
@@ -1975,7 +2373,7 @@ def render_pet_cards(
 
 
                 # -------------------------------------------------
-                # VIEW DETAILS
+                # DETAILS
                 # -------------------------------------------------
 
                 if st.button(
@@ -1984,7 +2382,7 @@ def render_pet_cards(
                         f"{prefix}_details_"
                         f"{pet['pet_id']}"
                     ),
-                    use_container_width=True,
+                    width="stretch",
                 ):
 
                     st.session_state[
@@ -1997,16 +2395,16 @@ def render_pet_cards(
 
 
                 # -------------------------------------------------
-                # INTEREST
+                # ENQUIRY
                 # -------------------------------------------------
 
                 if st.button(
-                    "I'm Interested",
+                    "❤️ I'm Interested",
                     key=(
                         f"{prefix}_interest_"
                         f"{pet['pet_id']}"
                     ),
-                    use_container_width=True,
+                    width="stretch",
                 ):
 
                     st.session_state[
@@ -2026,6 +2424,32 @@ def render_pet_cards(
                     ] = None
 
                     st.rerun()
+
+
+                # -------------------------------------------------
+                # WHATSAPP
+                # -------------------------------------------------
+
+                whatsapp_link = (
+                    build_whatsapp_link(
+                        pet
+                    )
+                )
+
+                if whatsapp_link:
+
+                    render_html(
+                        f"""
+                        <a
+                            class="whatsapp-button"
+                            href="{whatsapp_link}"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
+                            💬 WhatsApp PETORA
+                        </a>
+                        """
+                    )
 
 
 # =========================================================
@@ -2109,7 +2533,7 @@ else:
 
 
 # =========================================================
-# NAVIGATION
+# NAV
 # =========================================================
 
 render_html(
@@ -2183,10 +2607,10 @@ render_html(
             </h1>
 
             <div class="hero-lead">
-                Discover puppies today and explore
-                a growing world of pets tomorrow —
-                from dogs and cats to aquatics,
-                reptiles and exotic pets.
+                Discover pets today and explore
+                a growing world of animal companions
+                tomorrow — from dogs and cats to
+                aquatics, reptiles and exotic pets.
             </div>
 
             <div class="hero-actions">
@@ -2229,7 +2653,7 @@ render_html(
 
 
 # =========================================================
-# SEARCH / MANUAL FILTERS
+# MANUAL SEARCH
 # =========================================================
 
 render_html(
@@ -2245,8 +2669,8 @@ render_html(
         </div>
 
         <div class="section-copy">
-            Search by pet ID, name, breed,
-            category, gender and budget.
+            Search by pet ID, species, breed,
+            name, location, gender or budget.
         </div>
 
     </div>
@@ -2254,8 +2678,10 @@ render_html(
 )
 
 
-filter_col1, filter_col2, filter_col3, filter_col4 = st.columns(
-    [2.3, 1.4, 1.0, 1.3]
+filter_col1, filter_col2, filter_col3, filter_col4 = (
+    st.columns(
+        [2.3, 1.4, 1.0, 1.3]
+    )
 )
 
 
@@ -2264,38 +2690,29 @@ with filter_col1:
     search_term = st.text_input(
         "Search",
         placeholder=(
-            "Try Shih Tzu, Lucky or ST001..."
+            "Try Shih Tzu, Arowana, Lucky or ST001..."
         ),
     )
 
 
 with filter_col2:
 
-    if (
-        not inventory.empty
-        and "breed" in inventory.columns
-    ):
-
-        breed_options = (
-            ["All Breeds"]
-            +
-            sorted(
-                inventory["breed"]
-                .dropna()
-                .astype(str)
-                .unique()
-                .tolist()
-            )
+    breed_options = (
+        ["All Breeds"]
+        +
+        sorted(
+            inventory["breed"]
+            .dropna()
+            .astype(str)
+            .unique()
+            .tolist()
         )
-
-    else:
-
-        breed_options = [
-            "All Breeds"
-        ]
+        if not inventory.empty
+        else ["All Breeds"]
+    )
 
     breed_filter = st.selectbox(
-        "Breed",
+        "Breed / Type",
         breed_options,
     )
 
@@ -2308,6 +2725,7 @@ with filter_col3:
             "All",
             "Male",
             "Female",
+            "Unknown",
         ],
     )
 
@@ -2321,12 +2739,13 @@ with filter_col4:
             "Under ₹20,000",
             "Under ₹25,000",
             "Under ₹30,000",
+            "Under ₹50,000",
         ],
     )
 
 
 # =========================================================
-# CATEGORY
+# CATEGORIES
 # =========================================================
 
 render_html(
@@ -2353,7 +2772,7 @@ render_html(
 
         <div class="section-copy">
             Choose a category to instantly
-            filter available listings.
+            filter the marketplace.
         </div>
 
     </div>
@@ -2451,10 +2870,11 @@ for column, (
             """
         )
 
+
         if st.button(
             f"View {name}",
             key=f"category_{category_value}",
-            use_container_width=True,
+            width="stretch",
         ):
 
             st.session_state[
@@ -2479,7 +2899,10 @@ for column, (
 filtered_inventory = inventory.copy()
 
 
-# Category
+# ---------------------------------------------------------
+# CATEGORY
+# ---------------------------------------------------------
+
 selected_category = (
     st.session_state[
         "selected_category"
@@ -2497,15 +2920,18 @@ if (
                 "category"
             ]
             .astype(str)
-            .str.strip()
             .str.lower()
+            .str.strip()
             ==
             selected_category.lower()
         ]
     )
 
 
-# Search
+# ---------------------------------------------------------
+# SEARCH
+# ---------------------------------------------------------
+
 if (
     search_term.strip()
     and not filtered_inventory.empty
@@ -2520,22 +2946,25 @@ if (
     search_columns = [
         "pet_id",
         "category",
+        "species",
         "breed",
         "name",
         "location",
     ]
 
-    search_mask = pd.Series(
+    mask = pd.Series(
         False,
         index=filtered_inventory.index,
     )
 
-    for column in search_columns:
+    for column_name in search_columns:
 
-        search_mask = (
-            search_mask
+        mask = (
+            mask
             |
-            filtered_inventory[column]
+            filtered_inventory[
+                column_name
+            ]
             .astype(str)
             .str.lower()
             .str.contains(
@@ -2547,12 +2976,15 @@ if (
 
     filtered_inventory = (
         filtered_inventory[
-            search_mask
+            mask
         ]
     )
 
 
-# Breed
+# ---------------------------------------------------------
+# BREED
+# ---------------------------------------------------------
+
 if (
     breed_filter != "All Breeds"
     and not filtered_inventory.empty
@@ -2564,12 +2996,16 @@ if (
                 "breed"
             ]
             .astype(str)
-            == breed_filter
+            ==
+            breed_filter
         ]
     )
 
 
-# Gender
+# ---------------------------------------------------------
+# GENDER
+# ---------------------------------------------------------
+
 if (
     gender_filter != "All"
     and not filtered_inventory.empty
@@ -2588,7 +3024,10 @@ if (
     )
 
 
-# Budget
+# ---------------------------------------------------------
+# BUDGET
+# ---------------------------------------------------------
+
 if (
     budget_filter != "Any Budget"
     and not filtered_inventory.empty
@@ -2598,13 +3037,14 @@ if (
         "Under ₹20,000": 20000,
         "Under ₹25,000": 25000,
         "Under ₹30,000": 30000,
+        "Under ₹50,000": 50000,
     }
 
-    selected_limit = budget_limits[
+    limit = budget_limits[
         budget_filter
     ]
 
-    numeric_prices = pd.to_numeric(
+    prices = pd.to_numeric(
         filtered_inventory[
             "price"
         ],
@@ -2613,13 +3053,15 @@ if (
 
     filtered_inventory = (
         filtered_inventory[
-            numeric_prices
-            <= selected_limit
+            prices <= limit
         ]
     )
 
 
-# Available only
+# ---------------------------------------------------------
+# AVAILABLE
+# ---------------------------------------------------------
+
 if not filtered_inventory.empty:
 
     filtered_inventory = (
@@ -2637,7 +3079,7 @@ if not filtered_inventory.empty:
 
 
 # =========================================================
-# PET DETAIL VIEW
+# DETAIL VIEW
 # =========================================================
 
 detail_pet_id = (
@@ -2658,9 +3100,11 @@ if detail_pet_id:
         str(detail_pet_id)
     ]
 
+
     if not detail_match.empty:
 
         pet = detail_match.iloc[0]
+
 
         photo = str(
             pet.get(
@@ -2686,6 +3130,7 @@ if detail_pet_id:
                     photo,
                 )
 
+
         detail_image = None
 
         if (
@@ -2695,24 +3140,18 @@ if detail_pet_id:
             )
         ):
 
-            detail_image = prepare_image(
-                photo_path
+            detail_image = (
+                prepare_image(
+                    photo_path
+                )
             )
 
 
         render_html(
             """
             <div
-                id="pet-details"
                 style="
-                    height:1px;
-                    margin-top:25px;
-                "
-            ></div>
-
-            <div
-                style="
-                    margin-top:35px;
+                    margin-top:38px;
                     margin-bottom:15px;
                 "
             >
@@ -2730,8 +3169,10 @@ if detail_pet_id:
         )
 
 
-        detail_left, detail_right = st.columns(
-            [1.08, 1]
+        detail_left, detail_right = (
+            st.columns(
+                [1.08,1]
+            )
         )
 
 
@@ -2741,13 +3182,37 @@ if detail_pet_id:
 
                 st.image(
                     detail_image,
-                    use_container_width=True,
+                    width="stretch",
                 )
 
             else:
 
+                category_text = str(
+                    pet.get(
+                        "category",
+                        "",
+                    )
+                ).lower()
+
+                placeholder = "🐾"
+
+                if "dog" in category_text:
+                    placeholder = "🐶"
+
+                elif "cat" in category_text:
+                    placeholder = "🐱"
+
+                elif "aquatic" in category_text:
+                    placeholder = "🐟"
+
+                elif "reptile" in category_text:
+                    placeholder = "🐍"
+
+                elif "exotic" in category_text:
+                    placeholder = "🦜"
+
                 render_html(
-                    """
+                    f"""
                     <div
                         style="
                             min-height:450px;
@@ -2759,7 +3224,7 @@ if detail_pet_id:
                             font-size:90px;
                         "
                     >
-                        🐾
+                        {placeholder}
                     </div>
                     """
                 )
@@ -2769,7 +3234,7 @@ if detail_pet_id:
 
             render_html(
                 f"""
-                <div class="detail-shell">
+                <div class="detail-panel">
 
                     <div class="detail-kicker">
                         {safe_text(pet["category"])}
@@ -2791,7 +3256,17 @@ if detail_pet_id:
                     <div class="detail-grid">
 
                         <div class="detail-stat">
+                            <div class="detail-stat-label">
+                                Species
+                            </div>
 
+                            <div class="detail-stat-value">
+                                {safe_text(pet["species"])}
+                            </div>
+                        </div>
+
+
+                        <div class="detail-stat">
                             <div class="detail-stat-label">
                                 Gender
                             </div>
@@ -2799,12 +3274,10 @@ if detail_pet_id:
                             <div class="detail-stat-value">
                                 {safe_text(pet["gender"])}
                             </div>
-
                         </div>
 
 
                         <div class="detail-stat">
-
                             <div class="detail-stat-label">
                                 Age
                             </div>
@@ -2812,12 +3285,10 @@ if detail_pet_id:
                             <div class="detail-stat-value">
                                 {safe_text(pet["age"])}
                             </div>
-
                         </div>
 
 
                         <div class="detail-stat">
-
                             <div class="detail-stat-label">
                                 Vaccination
                             </div>
@@ -2825,12 +3296,10 @@ if detail_pet_id:
                             <div class="detail-stat-value">
                                 {safe_text(pet["vaccinated"])}
                             </div>
-
                         </div>
 
 
                         <div class="detail-stat">
-
                             <div class="detail-stat-label">
                                 Location
                             </div>
@@ -2838,24 +3307,24 @@ if detail_pet_id:
                             <div class="detail-stat-value">
                                 {safe_text(pet["location"])}
                             </div>
+                        </div>
 
+
+                        <div class="detail-stat">
+                            <div class="detail-stat-label">
+                                Status
+                            </div>
+
+                            <div class="detail-stat-value">
+                                {safe_text(pet["status"])}
+                            </div>
                         </div>
 
                     </div>
 
 
                     <div class="detail-description">
-
-                        A {safe_text(pet["breed"])}
-                        named {safe_text(pet["name"])}
-                        is listed in the PETORA marketplace.
-
-                        <br><br>
-
-                        Please contact PETORA to confirm
-                        current availability and the latest
-                        listing details before making a decision.
-
+                        {safe_text(pet["description"])}
                     </div>
 
                 </div>
@@ -2866,7 +3335,7 @@ if detail_pet_id:
             if st.button(
                 "❤️ Enquire About This Pet",
                 key="detail_enquire",
-                use_container_width=True,
+                width="stretch",
             ):
 
                 st.session_state[
@@ -2888,10 +3357,32 @@ if detail_pet_id:
                 st.rerun()
 
 
+            whatsapp_link = (
+                build_whatsapp_link(
+                    pet
+                )
+            )
+
+            if whatsapp_link:
+
+                render_html(
+                    f"""
+                    <a
+                        class="whatsapp-button"
+                        href="{whatsapp_link}"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        💬 Chat on WhatsApp
+                    </a>
+                    """
+                )
+
+
             if st.button(
                 "✕ Close Details",
                 key="close_details",
-                use_container_width=True,
+                width="stretch",
             ):
 
                 st.session_state[
@@ -2918,7 +3409,7 @@ render_html(
         id="featured-pets"
         style="
             height:1px;
-            margin-top:25px;
+            margin-top:30px;
         "
     ></div>
 
@@ -2943,7 +3434,7 @@ render_html(
             </div>
 
             <div class="section-copy">
-                Available pets matching your filters.
+                Live inventory from PETORA.
             </div>
 
         </div>
@@ -2973,7 +3464,7 @@ render_pet_cards(
 
 
 # =========================================================
-# AI ASSISTANT
+# AI
 # =========================================================
 
 render_html(
@@ -3009,10 +3500,11 @@ with ai_left:
             </div>
 
             <div class="ai-copy">
-                Search our real inventory using
-                normal language. PETORA can understand
-                breed, gender, budget, location and
-                category preferences.
+                Search PETORA's real inventory
+                using natural language.
+                PETORA can understand category,
+                breed, species, gender,
+                location and budget.
             </div>
 
             <br>
@@ -3039,11 +3531,11 @@ with ai_left:
 
                 <br>
 
-                • Show dogs under ₹25,000
+                • Show cats under ₹30,000
 
                 <br>
 
-                • What does PETORA offer?
+                • Find fish under ₹40,000
 
             </div>
 
@@ -3055,32 +3547,33 @@ with ai_left:
 with ai_right:
 
     st.subheader(
-        "🤖 Ask PETORA AI"
+        "🔎 Search with PETORA AI"
     )
 
 
     smart_question = st.text_input(
-        "Smart Search",
+        "Describe the pet you are looking for",
         placeholder=(
             "Example: Show female Shih Tzu under ₹20,000 in Patna"
         ),
-        key="smart_search_question",
+        key="smart_search_input",
     )
 
 
-    smart_search_button = st.button(
-        "🔎 Search with PETORA AI",
-        use_container_width=True,
+    smart_button = st.button(
+        "🔎 Find Matching Pets",
+        width="stretch",
         key="smart_search_button",
     )
 
 
-    if smart_search_button:
+    if smart_button:
 
         if not smart_question.strip():
 
             st.warning(
-                "Please describe the pet you are looking for."
+                "Please describe the pet "
+                "you are looking for."
             )
 
         else:
@@ -3100,15 +3593,15 @@ with ai_right:
                     <div class="smart-result">
 
                         <strong>
-                            🔎 PETORA found
+                            PETORA found
                             {len(smart_results)}
                             matching pet(s).
                         </strong>
 
                         <br>
 
-                        Showing real inventory
-                        matching your request.
+                        These are real listings
+                        from the live inventory.
 
                     </div>
                     """
@@ -3119,46 +3612,47 @@ with ai_right:
                     prefix="smart",
                 )
 
-
             else:
 
                 st.warning(
-                    "I couldn't find a matching pet "
+                    "No matching pets were found "
                     "in the current inventory."
                 )
 
-                st.markdown(
-                    "You can try a different breed, "
+                st.caption(
+                    "Try another breed, category, "
                     "gender, location or budget."
                 )
 
 
     # -----------------------------------------------------
-    # GENERAL AI QUESTION
+    # GENERAL AI
     # -----------------------------------------------------
 
-    st.markdown(
-        "<hr>",
-        unsafe_allow_html=True,
+    render_html(
+        """
+        <div style="height:25px;"></div>
+        """
     )
 
+
     st.subheader(
-        "💬 Ask a General Question"
+        "💬 Ask PETORA AI"
     )
 
 
     general_question = st.text_input(
         "Your Question",
         placeholder=(
-            "Ask about breeds, pet care or PETORA..."
+            "Ask about breeds, pet care, species or PETORA..."
         ),
-        key="general_question",
+        key="general_question_input",
     )
 
 
     general_button = st.button(
         "Ask PETORA AI",
-        use_container_width=True,
+        width="stretch",
         key="general_ai_button",
     )
 
@@ -3173,13 +3667,18 @@ with ai_right:
 
         else:
 
-            # Exact pet ID lookup
             matched_pet = None
 
             question_lower = (
-                general_question.lower()
+                general_question
+                .lower()
+                .strip()
             )
 
+
+            # -------------------------------------------------
+            # EXACT PET ID
+            # -------------------------------------------------
 
             if not inventory.empty:
 
@@ -3204,6 +3703,10 @@ with ai_right:
                         break
 
 
+            # -------------------------------------------------
+            # INVENTORY ANSWER
+            # -------------------------------------------------
+
             if matched_pet is not None:
 
                 answer = (
@@ -3215,6 +3718,12 @@ with ai_right:
                     f"Name: "
                     f"**{matched_pet['name']}**\n\n"
 
+                    f"Category: "
+                    f"**{matched_pet['category']}**\n\n"
+
+                    f"Species: "
+                    f"**{matched_pet['species']}**\n\n"
+
                     f"Price: "
                     f"**{format_price(matched_pet['price'])}**\n\n"
 
@@ -3223,9 +3732,6 @@ with ai_right:
 
                     f"Age: "
                     f"**{matched_pet['age']}**\n\n"
-
-                    f"Category: "
-                    f"**{matched_pet['category']}**\n\n"
 
                     f"Location: "
                     f"**{matched_pet['location']}**\n\n"
@@ -3280,7 +3786,7 @@ if st.session_state.get(
         """
         <div
             style="
-                margin-top:40px;
+                margin-top:42px;
                 margin-bottom:15px;
             "
         >
@@ -3309,8 +3815,8 @@ if st.session_state.get(
         "enquiry_form"
     ):
 
-        form_col1, form_col2 = st.columns(
-            2
+        form_col1, form_col2 = (
+            st.columns(2)
         )
 
 
@@ -3331,7 +3837,8 @@ if st.session_state.get(
         customer_message = st.text_area(
             "Message",
             placeholder=(
-                "Tell us what you would like to know..."
+                "Tell PETORA what you would "
+                "like to know..."
             ),
         )
 
@@ -3339,7 +3846,7 @@ if st.session_state.get(
         submitted = (
             st.form_submit_button(
                 "Send Enquiry",
-                use_container_width=True,
+                width="stretch",
             )
         )
 
@@ -3373,7 +3880,7 @@ if st.session_state.get(
 
             else:
 
-                save_enquiry(
+                cloud_saved = save_enquiry(
                     clean_name,
                     clean_phone,
                     selected_pet_id,
@@ -3381,11 +3888,58 @@ if st.session_state.get(
                     clean_message,
                 )
 
-                st.success(
-                    "Your enquiry has been submitted "
-                    "successfully. PETORA will contact "
-                    "you soon."
-                )
+
+                if cloud_saved:
+
+                    st.success(
+                        "Your enquiry has been saved "
+                        "to PETORA's live database."
+                    )
+
+                else:
+
+                    st.success(
+                        "Your enquiry has been recorded "
+                        "locally."
+                    )
+
+
+                selected_rows = inventory[
+                    inventory[
+                        "pet_id"
+                    ]
+                    .astype(str)
+                    ==
+                    selected_pet_id
+                ]
+
+
+                if not selected_rows.empty:
+
+                    whatsapp_pet = (
+                        selected_rows.iloc[0]
+                    )
+
+                    whatsapp_link = (
+                        build_whatsapp_link(
+                            whatsapp_pet
+                        )
+                    )
+
+                    if whatsapp_link:
+
+                        render_html(
+                            f"""
+                            <a
+                                class="whatsapp-button"
+                                href="{whatsapp_link}"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                💬 Continue on WhatsApp
+                            </a>
+                            """
+                        )
 
 
 # =========================================================
@@ -3407,7 +3961,7 @@ render_html(
             </div>
 
             <div class="trust-copy">
-                Simple pet information
+                Structured pet information
             </div>
 
         </div>
@@ -3416,15 +3970,15 @@ render_html(
         <div class="trust-item">
 
             <div class="trust-icon">
-                💉
+                🐾
             </div>
 
             <div class="trust-title">
-                Vaccination Info
+                Multiple Categories
             </div>
 
             <div class="trust-copy">
-                Details shown on listings
+                Dogs, cats & more
             </div>
 
         </div>
@@ -3458,7 +4012,7 @@ render_html(
             </div>
 
             <div class="trust-copy">
-                Smarter pet discovery
+                Natural-language discovery
             </div>
 
         </div>
@@ -3499,8 +4053,8 @@ render_html(
 
             PETORA is being designed as
             a modern pet discovery platform
-            where customers can explore pets,
-            compare listings and connect
+            where customers can explore,
+            filter and connect with pets
             through an AI-assisted experience.
 
         </div>
