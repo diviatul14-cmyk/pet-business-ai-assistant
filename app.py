@@ -1,20 +1,21 @@
 import os
 import re
 import html
+import base64
+import textwrap
 from datetime import datetime
 
 import pandas as pd
 import streamlit as st
-from PIL import Image, ImageOps, ImageChops
-
+from PIL import Image, ImageOps
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 from huggingface_hub import InferenceClient
 
 
-# ============================================================
+# =========================================================
 # PAGE CONFIG
-# ============================================================
+# =========================================================
 
 st.set_page_config(
     page_title="PETORA | Pets Beyond Borders",
@@ -24,817 +25,1123 @@ st.set_page_config(
 )
 
 
-# ============================================================
+# =========================================================
 # PATHS
-# ============================================================
+# =========================================================
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 DATA_DIR = os.path.join(BASE_DIR, "data")
 IMAGE_DIR = os.path.join(BASE_DIR, "images")
 
-PUPPY_FILE = os.path.join(DATA_DIR, "puppies.csv")
-KNOWLEDGE_FILE = os.path.join(DATA_DIR, "info.text")
+INVENTORY_FILE = os.path.join(DATA_DIR, "puppies.csv")
 ENQUIRY_FILE = os.path.join(DATA_DIR, "enquiries.csv")
+INFO_FILE = os.path.join(DATA_DIR, "info.text")
+
 LOGO_FILE = os.path.join(IMAGE_DIR, "petora-logo.png")
 
 
-# ============================================================
-# SETTINGS
-# ============================================================
+# =========================================================
+# AI CONFIG
+# =========================================================
 
-# Hugging Face model.
-# Hugging Face currently documents this model with
-# Inference Providers and provider="auto".
 HF_MODEL = "deepseek-ai/DeepSeek-V3-0324"
 
+try:
+    HF_TOKEN = st.secrets["HF_TOKEN"]
+except Exception:
+    HF_TOKEN = os.getenv("HF_TOKEN", "")
 
-# ============================================================
-# CUSTOM CSS
-# ============================================================
 
-st.markdown(
-    """
-<style>
+# =========================================================
+# SESSION STATE
+# =========================================================
 
-html, body {
-    background: #f8f7f1;
-}
+if "selected_category" not in st.session_state:
+    st.session_state["selected_category"] = "All"
 
-.stApp {
-    background: #f8f7f1;
-}
+if "selected_pet" not in st.session_state:
+    st.session_state["selected_pet"] = None
 
-.block-container {
-    max-width: 1450px;
-    padding-top: 1rem;
-    padding-bottom: 2rem;
-}
+if "selected_breed" not in st.session_state:
+    st.session_state["selected_breed"] = None
 
+if "detail_pet_id" not in st.session_state:
+    st.session_state["detail_pet_id"] = None
 
-/* ==========================================================
-   BRAND HEADER
-   ========================================================== */
 
-.brand-area {
-    background: linear-gradient(
-        105deg,
-        #eef3e9 0%,
-        #ffffff 50%,
-        #edf3e9 100%
-    );
+# =========================================================
+# HTML RENDER HELPER
+# =========================================================
 
-    border: 1px solid #d9dfd4;
-    border-radius: 22px;
-
-    padding: 12px 25px 16px 25px;
-
-    margin-bottom: 12px;
-
-    text-align: center;
-
-    box-shadow:
-        0 7px 20px rgba(0,0,0,0.05);
-}
-
-.brand-area img {
-    display: block;
-    margin: 0 auto;
-    max-width: 430px;
-    max-height: 180px;
-    object-fit: contain;
-}
-
-.brand-subtitle {
-    color: #9a731d;
-    font-size: 15px;
-    font-weight: 900;
-    letter-spacing: 3px;
-}
-
-.brand-tagline {
-    color: #315d41;
-    font-size: 16px;
-    font-style: italic;
-    margin-top: 4px;
-}
-
-
-/* ==========================================================
-   NAVIGATION
-   ========================================================== */
-
-.nav-bar {
-    background: #0d4529;
-
-    color: white;
-
-    border-radius: 14px;
-
-    padding: 14px 10px;
-
-    margin-bottom: 24px;
-
-    text-align: center;
-
-    font-size: 15px;
-
-    font-weight: 800;
-
-    box-shadow:
-        0 6px 15px rgba(13,69,41,0.18);
-}
-
-
-/* ==========================================================
-   HERO
-   ========================================================== */
-
-.hero {
-    background:
-        linear-gradient(
-            110deg,
-            #f6f1e4 0%,
-            #ffffff 55%,
-            #edf4e9 100%
-        );
-
-    border: 1px solid #ddd8c9;
-
-    border-radius: 22px;
-
-    padding: 34px 38px;
-
-    margin-bottom: 22px;
-
-    box-shadow:
-        0 7px 20px rgba(0,0,0,0.05);
-}
-
-.hero-small {
-    color: #a1781e;
-
-    font-size: 14px;
-
-    font-weight: 900;
-
-    letter-spacing: 2px;
-
-    text-transform: uppercase;
-}
-
-.hero-title {
-    color: #123d27;
-
-    font-size: 43px;
-
-    font-weight: 900;
-
-    line-height: 1.1;
-
-    margin-top: 5px;
-}
-
-.hero-description {
-    color: #555;
-
-    font-size: 18px;
-
-    line-height: 1.6;
-
-    max-width: 950px;
-
-    margin-top: 10px;
-}
-
-
-/* ==========================================================
-   FEATURE CARDS
-   ========================================================== */
-
-.feature-box {
-    background: white;
-
-    border: 1px solid #e2ded4;
-
-    border-radius: 16px;
-
-    padding: 17px 10px;
-
-    text-align: center;
-
-    min-height: 126px;
-
-    box-shadow:
-        0 5px 14px rgba(0,0,0,0.04);
-}
-
-.feature-icon {
-    font-size: 29px;
-}
-
-.feature-title {
-    color: #17482e;
-
-    font-weight: 900;
-
-    margin-top: 6px;
-}
-
-.feature-text {
-    color: #777;
-
-    font-size: 13px;
-
-    margin-top: 4px;
-}
-
-
-/* ==========================================================
-   SECTION
-   ========================================================== */
-
-.section-heading {
-    color: #123d27;
-
-    font-size: 30px;
-
-    font-weight: 900;
-
-    margin-top: 15px;
-
-    margin-bottom: 4px;
-}
-
-.section-subheading {
-    color: #777;
-
-    font-size: 15px;
-
-    margin-bottom: 16px;
-}
-
-
-/* ==========================================================
-   PUPPY IMAGE
-   ========================================================== */
-
-.puppy-image {
-    border-radius: 15px;
-    overflow: hidden;
-}
-
-
-/* ==========================================================
-   PUPPY CARD
-   ========================================================== */
-
-.puppy-box {
-    background: white;
-
-    border: 1px solid #ddd9cf;
-
-    border-radius: 18px;
-
-    padding: 15px 15px 12px 15px;
-
-    box-shadow:
-        0 7px 18px rgba(0,0,0,0.06);
-
-    margin-top: -4px;
-}
-
-.puppy-breed {
-    color: #143f28;
-
-    font-size: 20px;
-
-    font-weight: 900;
-}
-
-.puppy-id {
-    color: #7b7b7b;
-
-    font-size: 13px;
-
-    margin-top: 4px;
-}
-
-.puppy-line {
-    color: #484848;
-
-    font-size: 14px;
-
-    margin-top: 8px;
-}
-
-.puppy-price {
-    color: #18763c;
-
-    font-size: 26px;
-
-    font-weight: 900;
-
-    margin-top: 10px;
-}
-
-.available-pill {
-    display: inline-block;
-
-    background: #e2f6e7;
-
-    color: #22763d;
-
-    border-radius: 50px;
-
-    padding: 5px 10px;
-
-    font-size: 13px;
-
-    font-weight: 900;
-
-    margin-top: 8px;
-}
-
-
-/* ==========================================================
-   AI PANEL
-   ========================================================== */
-
-.ai-box {
-    background: white;
-
-    border: 1px solid #ddd9cf;
-
-    border-radius: 20px;
-
-    padding: 20px;
-
-    box-shadow:
-        0 7px 18px rgba(0,0,0,0.06);
-
-    margin-bottom: 12px;
-}
-
-.ai-title {
-    color: #123d27;
-
-    font-size: 25px;
-
-    font-weight: 900;
-}
-
-.ai-description {
-    color: #777;
-
-    font-size: 14px;
-
-    margin-top: 3px;
-}
-
-.chat-user {
-    background: #1d713b;
-
-    color: white;
-
-    border-radius: 14px 14px 4px 14px;
-
-    padding: 10px 13px;
-
-    margin: 9px 0 8px 25px;
-
-    font-size: 14px;
-
-    line-height: 1.5;
-}
-
-.chat-ai {
-    background: #edf2ed;
-
-    color: #303030;
-
-    border-radius: 14px 14px 14px 4px;
-
-    padding: 11px 13px;
-
-    margin: 8px 25px 10px 0;
-
-    font-size: 14px;
-
-    line-height: 1.55;
-}
-
-
-/* ==========================================================
-   TRUST BAR
-   ========================================================== */
-
-.trust-box {
-    background: #eef5eb;
-
-    border: 1px solid #d6e2d1;
-
-    border-radius: 17px;
-
-    padding: 20px 12px;
-
-    text-align: center;
-
-    margin-top: 25px;
-}
-
-.trust-title {
-    color: #194a2f;
-
-    font-size: 16px;
-
-    font-weight: 900;
-}
-
-.trust-text {
-    color: #707070;
-
-    font-size: 13px;
-
-    margin-top: 7px;
-}
-
-
-/* ==========================================================
-   LEAD
-   ========================================================== */
-
-.lead-box {
-    background: white;
-
-    border: 1px solid #ddd9cf;
-
-    border-radius: 18px;
-
-    padding: 20px;
-
-    margin-top: 22px;
-
-    box-shadow:
-        0 6px 16px rgba(0,0,0,0.05);
-}
-
-
-/* ==========================================================
-   FOOTER
-   ========================================================== */
-
-.footer-box {
-    background: #0d4529;
-
-    color: white;
-
-    border-radius: 18px;
-
-    padding: 30px 20px;
-
-    text-align: center;
-
-    margin-top: 28px;
-}
-
-.footer-brand {
-    font-size: 31px;
-
-    font-weight: 900;
-}
-
-.footer-tagline {
-    color: #e2bd61;
-
-    font-size: 17px;
-
-    font-style: italic;
-
-    margin-top: 4px;
-}
-
-.footer-small {
-    color: #d9e5dc;
-
-    font-size: 14px;
-
-    margin-top: 8px;
-}
-
-
-/* ==========================================================
-   BUTTONS
-   ========================================================== */
-
-.stButton > button {
-    width: 100%;
-
-    min-height: 42px;
-
-    border-radius: 10px;
-
-    border: none;
-
-    background: #b8892d;
-
-    color: white;
-
-    font-weight: 900;
-}
-
-.stButton > button:hover {
-    background: #956d20;
-
-    color: white;
-}
-
-.stFormSubmitButton > button {
-    border-radius: 10px;
-    font-weight: 800;
-}
-
-</style>
-""",
-    unsafe_allow_html=True,
-)
-
-
-# ============================================================
-# LOGO
-# ============================================================
-
-def crop_logo(image):
-    """
-    Crops large uniform whitespace from the supplied logo.
-    Keeps the existing image; does not alter the source file.
-    """
-
-    try:
-
-        image = image.convert("RGB")
-
-        background = Image.new(
-            "RGB",
-            image.size,
-            image.getpixel((0, 0))
-        )
-
-        difference = ImageChops.difference(
-            image,
-            background
-        )
-
-        difference = ImageOps.grayscale(
-            difference
-        )
-
-        bbox = difference.getbbox()
-
-        if bbox:
-            image = image.crop(bbox)
-
-        return image
-
-    except Exception:
-        return image
-
-
-# ============================================================
-# BRAND HEADER
-# ============================================================
-
-if os.path.isfile(LOGO_FILE):
-
-    try:
-
-        logo = Image.open(
-            LOGO_FILE
-        )
-
-        logo = crop_logo(
-            logo
-        )
-
-        st.html(
-            '<div class="brand-area">'
-        )
-
-        st.image(
-            logo,
-            width=430
-        )
-
-        st.html(
-            """
-            <div class="brand-subtitle">
-                PETS BEYOND BORDERS
-            </div>
-
-            <div class="brand-tagline">
-                More Pets. A Wilder World.
-            </div>
-
-            </div>
-            """
-        )
-
-    except Exception:
-
-        st.html(
-            """
-            <div class="brand-area">
-
-                <div style="
-                    color:#123d27;
-                    font-size:45px;
-                    font-weight:900;
-                ">
-                    PETORA™
-                </div>
-
-                <div class="brand-subtitle">
-                    PETS BEYOND BORDERS
-                </div>
-
-                <div class="brand-tagline">
-                    More Pets. A Wilder World.
-                </div>
-
-            </div>
-            """
-        )
-
-else:
-
+def render_html(content):
+    """Render custom HTML safely."""
     st.html(
-        """
-        <div class="brand-area">
-
-            <div style="
-                color:#123d27;
-                font-size:45px;
-                font-weight:900;
-            ">
-                PETORA™
-            </div>
-
-            <div class="brand-subtitle">
-                PETS BEYOND BORDERS
-            </div>
-
-            <div class="brand-tagline">
-                More Pets. A Wilder World.
-            </div>
-
-        </div>
-        """
+        textwrap.dedent(content).strip()
     )
 
 
-# ============================================================
-# NAVIGATION
-# ============================================================
+# =========================================================
+# GLOBAL CSS
+# =========================================================
 
-st.html(
+render_html(
     """
-    <div class="nav-bar">
+    <style>
 
-        🏠 Home
-        &nbsp; | &nbsp;
+    @import url(
+        'https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap'
+    );
 
-        🐶 Dogs
-        &nbsp; | &nbsp;
+    /* =====================================================
+       GLOBAL
+       ===================================================== */
 
-        🐱 Cats
-        &nbsp; | &nbsp;
+    html,
+    body,
+    [class*="css"] {
+        font-family: 'DM Sans', sans-serif;
+    }
 
-        🐟 Aquatics
-        &nbsp; | &nbsp;
+    .stApp {
+        background:
+            radial-gradient(
+                circle at top right,
+                rgba(225,239,222,0.60),
+                transparent 30%
+            ),
+            #f8f6ef;
+        color: #123b2b;
+    }
 
-        🐍 Reptiles
-        &nbsp; | &nbsp;
+    .block-container {
+        max-width: 1380px;
+        padding-top: 1rem;
+        padding-bottom: 3rem;
+    }
 
-        🦜 Exotic Pets
-        &nbsp; | &nbsp;
+    #MainMenu {
+        visibility: hidden;
+    }
 
-        🤖 AI Assistant
-        &nbsp; | &nbsp;
+    footer {
+        visibility: hidden;
+    }
 
-        ℹ️ About
+    header {
+        background: transparent !important;
+    }
 
-    </div>
+
+    /* =====================================================
+       HEADER
+       ===================================================== */
+
+    .petora-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+
+        width: 100%;
+        box-sizing: border-box;
+
+        gap: 30px;
+
+        padding: 16px 25px;
+
+        background: rgba(255,255,255,0.97);
+
+        border: 1px solid #e7e2d5;
+        border-radius: 22px;
+
+        box-shadow:
+            0 10px 35px rgba(18,59,43,0.07);
+
+        margin-bottom: 16px;
+    }
+
+    .petora-brand {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .petora-logo-small {
+        width: 76px;
+        height: 76px;
+        object-fit: contain;
+        border-radius: 12px;
+        display: block;
+    }
+
+    .brand-title {
+        font-family: 'Playfair Display', serif;
+
+        font-size: 32px;
+        font-weight: 700;
+
+        line-height: 1;
+
+        color: #0c4a32;
+    }
+
+    .brand-subtitle {
+        margin-top: 7px;
+
+        font-size: 11px;
+        font-weight: 800;
+
+        letter-spacing: 2.5px;
+
+        color: #a37a17;
+
+        text-transform: uppercase;
+    }
+
+    .header-tagline {
+        text-align: right;
+
+        color: #617165;
+
+        font-size: 14px;
+
+        line-height: 1.6;
+    }
+
+
+    /* =====================================================
+       NAVIGATION
+       ===================================================== */
+
+    .nav-wrap {
+        width: 100%;
+        box-sizing: border-box;
+
+        background: #0b4a30;
+
+        border-radius: 17px;
+
+        padding: 4px;
+
+        margin-bottom: 28px;
+
+        box-shadow:
+            0 8px 24px rgba(11,74,48,0.18);
+    }
+
+    .nav-inner {
+        display: flex;
+
+        align-items: center;
+
+        justify-content: center;
+
+        gap: 4px;
+
+        flex-wrap: wrap;
+
+        padding: 7px;
+    }
+
+    .nav-item {
+        color: white !important;
+
+        text-decoration: none !important;
+
+        font-size: 14px;
+
+        font-weight: 600;
+
+        padding: 10px 14px;
+
+        border-radius: 11px;
+    }
+
+    .nav-item:hover {
+        background: rgba(255,255,255,0.14);
+    }
+
+
+    /* =====================================================
+       HERO
+       ===================================================== */
+
+    .hero {
+        position: relative;
+
+        overflow: hidden;
+
+        min-height: 425px;
+
+        padding: 58px 55px 50px;
+
+        border-radius: 30px;
+
+        border: 1px solid #e4ded0;
+
+        background:
+            radial-gradient(
+                circle at 84% 43%,
+                rgba(192,220,192,0.58),
+                transparent 29%
+            ),
+            linear-gradient(
+                135deg,
+                #fffdf7 0%,
+                #f4f8ef 100%
+            );
+
+        box-shadow:
+            0 16px 50px rgba(18,59,43,0.08);
+
+        margin-bottom: 31px;
+    }
+
+    .hero-content {
+        max-width: 740px;
+
+        position: relative;
+
+        z-index: 3;
+    }
+
+    .hero-kicker {
+        color: #a77a18;
+
+        font-size: 13px;
+
+        font-weight: 800;
+
+        letter-spacing: 3px;
+
+        text-transform: uppercase;
+
+        margin-bottom: 15px;
+    }
+
+    .hero-title {
+        font-family: 'Playfair Display', serif;
+
+        color: #0a4831;
+
+        font-size: clamp(43px,5vw,67px);
+
+        line-height: 1.02;
+
+        margin: 0;
+    }
+
+    .hero-title span {
+        color: #ad831f;
+    }
+
+    .hero-lead {
+        color: #5f6d64;
+
+        font-size: 18px;
+
+        line-height: 1.75;
+
+        margin-top: 22px;
+
+        max-width: 690px;
+    }
+
+    .hero-actions {
+        display: flex;
+
+        gap: 14px;
+
+        flex-wrap: wrap;
+
+        margin-top: 30px;
+    }
+
+    .hero-btn-primary,
+    .hero-btn-secondary {
+        display: inline-block;
+
+        padding: 13px 22px;
+
+        border-radius: 12px;
+
+        font-weight: 700;
+
+        text-decoration: none;
+    }
+
+    .hero-btn-primary {
+        background: #0b4a30;
+
+        color: white !important;
+    }
+
+    .hero-btn-secondary {
+        background: white;
+
+        color: #0b4a30 !important;
+
+        border: 1px solid #d9ddcf;
+    }
+
+    .hero-orbit {
+        position: absolute;
+
+        right: -65px;
+        top: 8px;
+
+        width: 450px;
+        height: 450px;
+
+        border-radius: 50%;
+
+        background:
+            rgba(224,237,220,0.70);
+
+        border:
+            1px solid rgba(123,155,128,0.20);
+    }
+
+    .hero-orbit-inner {
+        position: absolute;
+
+        inset: 47px;
+
+        border-radius: 50%;
+
+        background:
+            rgba(255,255,255,0.74);
+
+        border:
+            1px solid rgba(123,155,128,0.20);
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        font-size: 105px;
+
+        letter-spacing: -10px;
+    }
+
+    .hero-mini-card {
+        position: absolute;
+
+        right: 72px;
+        bottom: 32px;
+
+        background: white;
+
+        padding: 11px 16px;
+
+        border-radius: 12px;
+
+        box-shadow:
+            0 10px 25px rgba(15,52,36,0.12);
+
+        font-weight: 700;
+
+        color: #0b4a30;
+
+        z-index: 4;
+    }
+
+
+    /* =====================================================
+       SECTIONS
+       ===================================================== */
+
+    .section-label {
+        color: #a77a18;
+
+        font-size: 12px;
+
+        letter-spacing: 2.5px;
+
+        font-weight: 800;
+
+        text-transform: uppercase;
+
+        margin-bottom: 7px;
+    }
+
+    .section-title {
+        color: #104a34;
+
+        font-family: 'Playfair Display', serif;
+
+        font-size: 31px;
+
+        margin-bottom: 4px;
+    }
+
+    .section-copy {
+        color: #6a766e;
+
+        font-size: 14px;
+
+        margin-bottom: 17px;
+    }
+
+
+    /* =====================================================
+       SEARCH
+       ===================================================== */
+
+    .search-section {
+        background: white;
+
+        border: 1px solid #e5e0d4;
+
+        border-radius: 22px;
+
+        padding: 23px 24px 9px;
+
+        box-shadow:
+            0 8px 28px rgba(18,59,43,0.05);
+
+        margin-bottom: 25px;
+    }
+
+
+    /* =====================================================
+       CATEGORY
+       ===================================================== */
+
+    .category-card {
+        min-height: 155px;
+
+        padding: 24px 15px;
+
+        text-align: center;
+
+        background: white;
+
+        border: 1px solid #e6e1d5;
+
+        border-radius: 20px;
+
+        box-shadow:
+            0 8px 28px rgba(18,59,43,0.05);
+
+        box-sizing: border-box;
+    }
+
+    .category-card.active {
+        border: 2px solid #0b4a30;
+
+        background:
+            linear-gradient(
+                145deg,
+                #f7fbf4,
+                #edf5ea
+            );
+
+        box-shadow:
+            0 12px 32px rgba(11,74,48,0.12);
+    }
+
+    .category-icon {
+        font-size: 38px;
+        margin-bottom: 11px;
+    }
+
+    .category-name {
+        font-weight: 800;
+
+        color: #164b36;
+
+        font-size: 16px;
+    }
+
+    .category-copy {
+        color: #768078;
+
+        font-size: 12px;
+
+        line-height: 1.5;
+
+        margin-top: 6px;
+    }
+
+
+    /* =====================================================
+       PET CARDS
+       ===================================================== */
+
+    .pet-body {
+        background: white;
+
+        padding: 18px;
+
+        border:
+            1px solid #e7e2d6;
+
+        border-top: none;
+
+        border-radius:
+            0 0 20px 20px;
+
+        margin-bottom: 8px;
+    }
+
+    .pet-breed {
+        font-size: 21px;
+
+        font-weight: 800;
+
+        color: #104a34;
+    }
+
+    .pet-name {
+        color: #68766c;
+
+        font-size: 13px;
+
+        font-weight: 600;
+
+        margin-top: 3px;
+    }
+
+    .pet-id {
+        color: #919991;
+
+        font-size: 12px;
+
+        margin-top: 4px;
+    }
+
+    .pet-meta {
+        margin-top: 13px;
+
+        display: flex;
+
+        justify-content: space-between;
+
+        gap: 10px;
+
+        color: #69756d;
+
+        font-size: 13px;
+    }
+
+    .pet-price {
+        font-size: 23px;
+
+        font-weight: 800;
+
+        color: #aa7c16;
+
+        margin-top: 13px;
+    }
+
+    .available-badge {
+        display: inline-block;
+
+        margin-top: 10px;
+
+        padding: 5px 9px;
+
+        border-radius: 999px;
+
+        background: #e9f5ec;
+
+        color: #176038;
+
+        font-size: 11px;
+
+        font-weight: 800;
+    }
+
+
+    /* =====================================================
+       PET DETAIL
+       ===================================================== */
+
+    .detail-shell {
+        background: white;
+
+        border:
+            1px solid #e5e0d4;
+
+        border-radius: 26px;
+
+        padding: 28px;
+
+        box-shadow:
+            0 15px 45px rgba(18,59,43,0.08);
+
+        margin-top: 15px;
+
+        margin-bottom: 35px;
+    }
+
+    .detail-kicker {
+        color: #a77a18;
+
+        font-size: 12px;
+
+        font-weight: 800;
+
+        letter-spacing: 2.5px;
+
+        text-transform: uppercase;
+
+        margin-bottom: 8px;
+    }
+
+    .detail-title {
+        color: #104a34;
+
+        font-family: 'Playfair Display', serif;
+
+        font-size: 40px;
+
+        line-height: 1.1;
+
+        margin: 0;
+    }
+
+    .detail-subtitle {
+        color: #768078;
+
+        font-size: 15px;
+
+        margin-top: 8px;
+    }
+
+    .detail-price {
+        color: #aa7c16;
+
+        font-size: 32px;
+
+        font-weight: 800;
+
+        margin-top: 18px;
+    }
+
+    .detail-grid {
+        display: grid;
+
+        grid-template-columns:
+            repeat(2,1fr);
+
+        gap: 10px;
+
+        margin-top: 24px;
+    }
+
+    .detail-stat {
+        background: #f5f8f1;
+
+        border:
+            1px solid #e2eadf;
+
+        border-radius: 13px;
+
+        padding: 13px 15px;
+    }
+
+    .detail-stat-label {
+        font-size: 10px;
+
+        font-weight: 800;
+
+        letter-spacing: 1.3px;
+
+        color: #819087;
+
+        text-transform: uppercase;
+    }
+
+    .detail-stat-value {
+        margin-top: 4px;
+
+        color: #164b36;
+
+        font-size: 14px;
+
+        font-weight: 700;
+    }
+
+    .detail-description {
+        background:
+            linear-gradient(
+                135deg,
+                #fffdf7,
+                #f5f8f1
+            );
+
+        border:
+            1px solid #e7e1d5;
+
+        border-radius: 15px;
+
+        padding: 17px;
+
+        margin-top: 22px;
+
+        color: #5f6d64;
+
+        font-size: 14px;
+
+        line-height: 1.7;
+    }
+
+
+    /* =====================================================
+       AI
+       ===================================================== */
+
+    .ai-panel {
+        background:
+            linear-gradient(
+                145deg,
+                #0a4a31,
+                #093b29
+            );
+
+        border-radius: 24px;
+
+        padding: 28px;
+
+        color: white;
+
+        box-shadow:
+            0 15px 45px rgba(9,59,41,0.20);
+
+        min-height: 325px;
+
+        box-sizing: border-box;
+    }
+
+    .ai-badge {
+        display: inline-block;
+
+        background:
+            rgba(255,255,255,0.12);
+
+        padding: 6px 10px;
+
+        border-radius: 999px;
+
+        font-size: 11px;
+
+        font-weight: 800;
+
+        letter-spacing: 1px;
+
+        margin-bottom: 13px;
+    }
+
+    .ai-title {
+        font-family: 'Playfair Display', serif;
+
+        font-size: 33px;
+
+        margin-bottom: 10px;
+    }
+
+    .ai-copy {
+        color: rgba(255,255,255,0.76);
+
+        font-size: 14px;
+
+        line-height: 1.7;
+    }
+
+
+    /* =====================================================
+       SMART SEARCH RESULT
+       ===================================================== */
+
+    .smart-result {
+        background:
+            linear-gradient(
+                135deg,
+                #f2f8ef,
+                #ffffff
+            );
+
+        border:
+            1px solid #dfe9dc;
+
+        border-radius: 16px;
+
+        padding: 15px 18px;
+
+        margin-top: 15px;
+
+        color: #315640;
+
+        font-size: 14px;
+
+        line-height: 1.7;
+    }
+
+
+    /* =====================================================
+       TRUST
+       ===================================================== */
+
+    .trust-bar {
+        display: grid;
+
+        grid-template-columns:
+            repeat(4,1fr);
+
+        gap: 10px;
+
+        margin: 38px 0;
+    }
+
+    .trust-item {
+        background: white;
+
+        border:
+            1px solid #e7e1d6;
+
+        padding: 20px 15px;
+
+        text-align: center;
+
+        border-radius: 16px;
+    }
+
+    .trust-icon {
+        font-size: 22px;
+    }
+
+    .trust-title {
+        margin-top: 8px;
+
+        font-weight: 800;
+
+        color: #155039;
+
+        font-size: 14px;
+    }
+
+    .trust-copy {
+        margin-top: 4px;
+
+        font-size: 11px;
+
+        color: #858e87;
+    }
+
+
+    /* =====================================================
+       FOOTER
+       ===================================================== */
+
+    .footer-box {
+        margin-top: 45px;
+
+        background: #0a3f2b;
+
+        color: rgba(255,255,255,0.80);
+
+        border-radius: 24px;
+
+        padding: 30px;
+
+        box-sizing: border-box;
+    }
+
+    .footer-brand {
+        color: white;
+
+        font-family: 'Playfair Display', serif;
+
+        font-size: 29px;
+
+        font-weight: 700;
+    }
+
+    .footer-copy {
+        margin-top: 7px;
+
+        font-size: 13px;
+
+        line-height: 1.7;
+    }
+
+    .footer-bottom {
+        border-top:
+            1px solid rgba(255,255,255,0.12);
+
+        margin-top: 25px;
+
+        padding-top: 18px;
+
+        font-size: 11px;
+
+        color: rgba(255,255,255,0.55);
+    }
+
+
+    /* =====================================================
+       BUTTONS
+       ===================================================== */
+
+    .stButton > button {
+        border-radius: 11px;
+
+        min-height: 42px;
+
+        font-weight: 700;
+    }
+
+
+    /* =====================================================
+       MOBILE
+       ===================================================== */
+
+    @media (max-width: 900px) {
+
+        .petora-header {
+            padding: 16px;
+        }
+
+        .header-tagline {
+            display: none;
+        }
+
+        .hero {
+            padding: 35px 28px;
+
+            min-height: 560px;
+        }
+
+        .hero-orbit {
+            right: -125px;
+
+            top: 245px;
+        }
+
+        .hero-mini-card {
+            right: 25px;
+
+            bottom: 20px;
+        }
+
+        .trust-bar {
+            grid-template-columns:
+                repeat(2,1fr);
+        }
+
+        .detail-grid {
+            grid-template-columns:
+                1fr;
+        }
+    }
+
+    </style>
     """
 )
 
 
-# ============================================================
-# HERO
-# ============================================================
+# =========================================================
+# GENERAL HELPERS
+# =========================================================
 
-st.html(
-    """
-    <div class="hero">
-
-        <div class="hero-small">
-            Welcome to PETORA
-        </div>
-
-        <div class="hero-title">
-            Your Complete Pet Companion
-        </div>
-
-        <div class="hero-description">
-            Find puppies, explore pets, check availability,
-            ask PETORA AI questions and send an enquiry —
-            all in one place.
-        </div>
-
-    </div>
-    """
-)
+def safe_text(value):
+    return html.escape(
+        str(value)
+    )
 
 
-# ============================================================
-# FEATURES
-# ============================================================
+def format_price(value):
+    try:
+        return f"₹{float(value):,.0f}"
+    except Exception:
+        return str(value)
 
-feature_data = [
-    (
-        "✅",
-        "Verified Information",
-        "Clear puppy details and records."
-    ),
-    (
-        "🚚",
-        "Safe & Convenient",
-        "Simple enquiry and support."
-    ),
-    (
-        "❤️",
-        "Pet First",
-        "Care-focused pet guidance."
-    ),
-    (
-        "🤖",
-        "PETORA AI",
-        "Answers from your business data."
-    ),
-]
 
-feature_columns = st.columns(4)
+def image_to_base64(path):
+    try:
 
-for column, item in zip(
-    feature_columns,
-    feature_data
-):
+        with open(
+            path,
+            "rb",
+        ) as image_file:
 
-    icon, title, description = item
+            return base64.b64encode(
+                image_file.read()
+            ).decode("utf-8")
 
-    with column:
+    except Exception:
 
-        st.html(
-            f"""
-            <div class="feature-box">
+        return ""
 
-                <div class="feature-icon">
-                    {icon}
-                </div>
 
-                <div class="feature-title">
-                    {title}
-                </div>
+def prepare_image(path):
+    try:
 
-                <div class="feature-text">
-                    {description}
-                </div>
+        image = Image.open(
+            path
+        ).convert("RGB")
 
-            </div>
-            """
+        return ImageOps.fit(
+            image,
+            (800,600),
+            method=Image.Resampling.LANCZOS,
+            centering=(0.5,0.5),
         )
 
+    except Exception:
 
-# ============================================================
+        return None
+
+
+# =========================================================
 # INVENTORY
-# ============================================================
+# =========================================================
 
-@st.cache_data
 def load_inventory():
 
-    if not os.path.isfile(
-        PUPPY_FILE
+    if not os.path.exists(
+        INVENTORY_FILE
     ):
+
         return pd.DataFrame()
 
     try:
 
         df = pd.read_csv(
-            PUPPY_FILE
+            INVENTORY_FILE
         )
 
-        return df
+        required_columns = [
+            "pet_id",
+            "category",
+            "breed",
+            "name",
+            "gender",
+            "age",
+            "price",
+            "status",
+            "vaccinated",
+            "location",
+            "photo",
+        ]
 
-    except Exception:
+        for column in required_columns:
+
+            if column not in df.columns:
+
+                df[column] = ""
+
+        return df[
+            required_columns
+        ].copy()
+
+    except Exception as exc:
+
+        st.error(
+            f"Could not load inventory: {exc}"
+        )
 
         return pd.DataFrame()
 
@@ -842,180 +1149,19 @@ def load_inventory():
 inventory = load_inventory()
 
 
-if inventory.empty:
-
-    st.error(
-        "Could not load data/puppies.csv"
-    )
-
-    st.stop()
-
-
-# ============================================================
-# ENSURE COLUMNS
-# ============================================================
-
-required_columns = [
-    "puppy_id",
-    "breed",
-    "gender",
-    "age_weeks",
-    "price",
-    "status",
-    "vaccinated",
-    "location",
-    "photo",
-]
-
-for column in required_columns:
-
-    if column not in inventory.columns:
-
-        inventory[column] = ""
-
-
-# ============================================================
-# CLEAN DATA
-# ============================================================
-
-for column in [
-    "puppy_id",
-    "breed",
-    "gender",
-    "status",
-    "vaccinated",
-    "location",
-    "photo",
-]:
-
-    inventory[column] = (
-        inventory[column]
-        .fillna("")
-        .astype(str)
-        .str.strip()
-    )
-
-
-inventory["price"] = pd.to_numeric(
-    inventory["price"],
-    errors="coerce"
-).fillna(0)
-
-
-inventory["age_weeks"] = pd.to_numeric(
-    inventory["age_weeks"],
-    errors="coerce"
-).fillna(0)
-
-
-# ============================================================
-# KNOWLEDGE BASE
-# ============================================================
-
-@st.cache_data
-def load_knowledge():
-
-    if not os.path.isfile(
-        KNOWLEDGE_FILE
-    ):
-        return []
-
-    try:
-
-        with open(
-            KNOWLEDGE_FILE,
-            "r",
-            encoding="utf-8"
-        ) as file:
-
-            content = file.read()
-
-    except Exception:
-
-        return []
-
-
-    chunks = [
-        chunk.strip()
-        for chunk in re.split(
-            r"[\n.!?]+",
-            content
-        )
-        if chunk.strip()
-    ]
-
-    return chunks
-
-
-knowledge_chunks = load_knowledge()
-
-
-# ============================================================
-# EMBEDDING MODEL
-# ============================================================
-
-@st.cache_resource
-def load_embedding_model():
-
-    return SentenceTransformer(
-        "all-MiniLM-L6-v2"
-    )
-
-
-embedding_model = load_embedding_model()
-
-
-if knowledge_chunks:
-
-    knowledge_embeddings = (
-        embedding_model.encode(
-            knowledge_chunks
-        )
-    )
-
-else:
-
-    knowledge_embeddings = None
-
-
-# ============================================================
-# ENQUIRIES
-# ============================================================
-
-def ensure_enquiry_file():
-
-    if not os.path.isfile(
-        ENQUIRY_FILE
-    ):
-
-        pd.DataFrame(
-            columns=[
-                "date",
-                "name",
-                "phone",
-                "puppy_id",
-                "breed",
-                "message",
-                "status",
-            ]
-        ).to_csv(
-            ENQUIRY_FILE,
-            index=False
-        )
-
-
-ensure_enquiry_file()
-
+# =========================================================
+# ENQUIRY
+# =========================================================
 
 def save_enquiry(
     name,
     phone,
-    puppy_id,
+    pet_id,
     breed,
-    message
+    message,
 ):
 
-    row = pd.DataFrame(
+    new_row = pd.DataFrame(
         [
             {
                 "date": datetime.now().strftime(
@@ -1023,7 +1169,7 @@ def save_enquiry(
                 ),
                 "name": name,
                 "phone": phone,
-                "puppy_id": puppy_id,
+                "pet_id": pet_id,
                 "breed": breed,
                 "message": message,
                 "status": "New",
@@ -1031,358 +1177,796 @@ def save_enquiry(
         ]
     )
 
-    row.to_csv(
-        ENQUIRY_FILE,
-        mode="a",
-        header=False,
-        index=False
-    )
-
-
-# ============================================================
-# HELPERS
-# ============================================================
-
-def find_puppy_id(text):
-
-    match = re.search(
-        r"\b[A-Za-z]{2}\d{3}\b",
-        text
-    )
-
-    if match:
-
-        return match.group(
-            0
-        ).upper()
-
-    return ""
-
-
-def find_puppy(puppy_id):
-
-    if not puppy_id:
-
-        return None
-
-    result = inventory[
-        inventory["puppy_id"]
-        .str.upper()
-        .eq(
-            puppy_id.upper()
-        )
-    ]
-
-    if not result.empty:
-
-        return result.iloc[0]
-
-    return None
-
-
-def detect_buying_intent(text):
-
-    keywords = [
-        "interested",
-        "buy",
-        "buying",
-        "purchase",
-        "book",
-        "booking",
-        "reserve",
-        "reservation",
-        "want this puppy",
-        "want to buy",
-        "i want",
-        "i would like",
-    ]
-
-    text = text.lower()
-
-    return any(
-        keyword in text
-        for keyword in keywords
-    )
-
-
-def make_inventory_context():
-
-    return (
-        "CURRENT PET INVENTORY:\n\n"
-        + inventory.to_string(
-            index=False
-        )
-    )
-
-
-def make_rag_context(query):
-
-    inventory_terms = [
-        "price",
-        "puppy",
-        "puppies",
-        "available",
-        "availability",
-        "breed",
-        "male",
-        "female",
-        "vaccinated",
-        "sold",
-        "age",
-        "inventory",
-        "location",
-    ]
-
-    if any(
-        term in query.lower()
-        for term in inventory_terms
+    if os.path.exists(
+        ENQUIRY_FILE
     ):
 
-        return make_inventory_context()
+        try:
 
+            existing = pd.read_csv(
+                ENQUIRY_FILE
+            )
 
-    if (
-        knowledge_embeddings is None
-        or not knowledge_chunks
-    ):
+        except Exception:
 
-        return ""
-
-
-    query_vector = (
-        embedding_model.encode(
-            [query]
-        )
-    )
-
-
-    scores = cosine_similarity(
-        query_vector,
-        knowledge_embeddings
-    )[0]
-
-
-    top_indices = (
-        scores.argsort()[
-            -4:
-        ][::-1]
-    )
-
-
-    return "\n".join(
-        knowledge_chunks[i]
-        for i in top_indices
-    )
-
-
-# ============================================================
-# SESSION STATE
-# ============================================================
-
-if "messages" not in st.session_state:
-
-    st.session_state.messages = []
-
-
-if "lead_request" not in st.session_state:
-
-    st.session_state.lead_request = None
-
-
-# ============================================================
-# MAIN LAYOUT
-# ============================================================
-
-left_column, right_column = st.columns(
-    [1.7, 1],
-    gap="large"
-)
-
-
-# ============================================================
-# LEFT COLUMN — PUPPIES
-# ============================================================
-
-with left_column:
-
-    st.html(
-        """
-        <div class="section-heading">
-            🐾 Available Puppies
-        </div>
-
-        <div class="section-subheading">
-            Browse our current puppy inventory.
-            Click "I'm Interested" to send an enquiry.
-        </div>
-        """
-    )
-
-
-    available = inventory[
-        inventory["status"]
-        .str.lower()
-        .eq("available")
-    ].copy()
-
-
-    if available.empty:
-
-        st.info(
-            "No puppies are currently available."
-        )
+            existing = pd.DataFrame()
 
     else:
 
-        puppy_columns = st.columns(
-            min(
-                3,
-                len(available)
+        existing = pd.DataFrame()
+
+    result = pd.concat(
+        [
+            existing,
+            new_row,
+        ],
+        ignore_index=True,
+    )
+
+    os.makedirs(
+        DATA_DIR,
+        exist_ok=True,
+    )
+
+    result.to_csv(
+        ENQUIRY_FILE,
+        index=False,
+    )
+
+
+# =========================================================
+# RAG
+# =========================================================
+
+@st.cache_resource
+def get_embedding_model():
+
+    return SentenceTransformer(
+        "all-MiniLM-L6-v2"
+    )
+
+
+@st.cache_data
+def load_knowledge_chunks():
+
+    if not os.path.exists(
+        INFO_FILE
+    ):
+
+        return []
+
+    try:
+
+        with open(
+            INFO_FILE,
+            "r",
+            encoding="utf-8",
+        ) as file:
+
+            text = file.read()
+
+    except Exception:
+
+        return []
+
+    text = re.sub(
+        r"\s+",
+        " ",
+        text,
+    ).strip()
+
+    if not text:
+
+        return []
+
+    chunk_size = 500
+
+    chunks = []
+
+    for index in range(
+        0,
+        len(text),
+        chunk_size,
+    ):
+
+        chunk = text[
+            index:index + chunk_size
+        ].strip()
+
+        if chunk:
+
+            chunks.append(
+                chunk
             )
+
+    return chunks
+
+
+@st.cache_data
+def build_knowledge_embeddings(
+    chunks
+):
+
+    if not chunks:
+
+        return None
+
+    model = get_embedding_model()
+
+    return model.encode(
+        chunks
+    )
+
+
+def rag_search(
+    question,
+    top_k=3,
+):
+
+    chunks = load_knowledge_chunks()
+
+    if not chunks:
+
+        return ""
+
+    embeddings = (
+        build_knowledge_embeddings(
+            chunks
+        )
+    )
+
+    if embeddings is None:
+
+        return ""
+
+    model = get_embedding_model()
+
+    question_embedding = (
+        model.encode(
+            [question]
+        )
+    )
+
+    scores = cosine_similarity(
+        question_embedding,
+        embeddings,
+    )[0]
+
+    best_indexes = (
+        scores
+        .argsort()[-top_k:][::-1]
+    )
+
+    selected = []
+
+    for index in best_indexes:
+
+        if scores[index] > 0.20:
+
+            selected.append(
+                chunks[index]
+            )
+
+    return "\n\n".join(
+        selected
+    )
+
+
+# =========================================================
+# HUGGING FACE AI
+# =========================================================
+
+def ask_ai(
+    question,
+    context,
+):
+
+    if not HF_TOKEN:
+
+        return (
+            "PETORA AI is not configured yet. "
+            "Please add HF_TOKEN to Streamlit secrets."
+        )
+
+    try:
+
+        client = InferenceClient(
+            provider="auto",
+            api_key=HF_TOKEN,
+        )
+
+        system_prompt = """
+You are PETORA AI, a friendly pet marketplace assistant.
+
+Help customers understand:
+- pets
+- breeds
+- basic pet information
+- responsible pet ownership
+- PETORA services
+
+Use the supplied context when relevant.
+
+Never invent inventory information.
+
+Exact inventory information is handled by the application.
+
+Be concise, friendly, professional and helpful.
+
+Do not claim that PETORA guarantees health,
+delivery, availability or legality unless
+that information is explicitly provided.
+"""
+
+        messages = [
+            {
+                "role": "system",
+                "content": system_prompt,
+            },
+            {
+                "role": "user",
+                "content": (
+                    f"Context:\n{context}\n\n"
+                    f"Customer question:\n{question}"
+                ),
+            },
+        ]
+
+        response = client.chat_completion(
+            messages=messages,
+            model=HF_MODEL,
+            max_tokens=350,
+            temperature=0.5,
+        )
+
+        return (
+            response
+            .choices[0]
+            .message
+            .content
+            .strip()
+        )
+
+    except Exception as exc:
+
+        return (
+            "PETORA AI is temporarily "
+            f"unavailable: {exc}"
         )
 
 
-        for index, (_, puppy) in enumerate(
-            available.iterrows()
+# =========================================================
+# AI SMART SEARCH
+# =========================================================
+
+def smart_search_inventory(
+    question,
+    inventory_df,
+):
+    """
+    Interpret a natural-language pet search and filter
+    the actual inventory dataframe.
+
+    AI is NOT used to invent listings.
+    """
+
+    if inventory_df.empty:
+
+        return inventory_df.copy()
+
+    result = inventory_df.copy()
+
+    q = question.lower().strip()
+
+
+    # -----------------------------------------------------
+    # AVAILABLE
+    # -----------------------------------------------------
+
+    result = result[
+        result["status"]
+        .astype(str)
+        .str.lower()
+        .str.strip()
+        == "available"
+    ]
+
+
+    # -----------------------------------------------------
+    # GENDER
+    # -----------------------------------------------------
+
+    if re.search(
+        r"\bfemale\b",
+        q,
+    ):
+
+        result = result[
+            result["gender"]
+            .astype(str)
+            .str.lower()
+            .str.strip()
+            == "female"
+        ]
+
+    elif re.search(
+        r"\bmale\b",
+        q,
+    ):
+
+        result = result[
+            result["gender"]
+            .astype(str)
+            .str.lower()
+            .str.strip()
+            == "male"
+        ]
+
+
+    # -----------------------------------------------------
+    # CATEGORY
+    # -----------------------------------------------------
+
+    category_terms = {
+        "dogs": "Dogs",
+        "dog": "Dogs",
+        "puppies": "Dogs",
+        "puppy": "Dogs",
+
+        "cats": "Cats",
+        "cat": "Cats",
+
+        "aquatics": "Aquatics",
+        "aquatic": "Aquatics",
+        "fish": "Aquatics",
+
+        "reptiles": "Reptiles",
+        "reptile": "Reptiles",
+
+        "exotic pets": "Exotic Pets",
+        "exotic": "Exotic Pets",
+    }
+
+    detected_category = None
+
+    # Check longer phrases first
+    category_keys = sorted(
+        category_terms.keys(),
+        key=len,
+        reverse=True,
+    )
+
+    for term in category_keys:
+
+        if re.search(
+            rf"\b{re.escape(term)}\b",
+            q,
         ):
 
-            with puppy_columns[
-                index % len(puppy_columns)
-            ]:
+            detected_category = (
+                category_terms[term]
+            )
 
-                # ------------------------------------------------
-                # IMAGE
-                # ------------------------------------------------
+            break
 
-                photo_name = str(
-                    puppy["photo"]
-                ).strip().lstrip("/")
+    if detected_category:
+
+        result = result[
+            result["category"]
+            .astype(str)
+            .str.lower()
+            .str.strip()
+            ==
+            detected_category.lower()
+        ]
 
 
-                image_path = os.path.join(
-                    BASE_DIR,
-                    photo_name
+    # -----------------------------------------------------
+    # BREED
+    # -----------------------------------------------------
+
+    if "breed" in result.columns:
+
+        all_breeds = (
+            inventory_df["breed"]
+            .dropna()
+            .astype(str)
+            .str.strip()
+            .unique()
+        )
+
+        # Longer breed names first
+        breeds_sorted = sorted(
+            all_breeds,
+            key=len,
+            reverse=True,
+        )
+
+        for breed in breeds_sorted:
+
+            if not breed:
+                continue
+
+            if breed.lower() in q:
+
+                result = result[
+                    result["breed"]
+                    .astype(str)
+                    .str.lower()
+                    .str.strip()
+                    ==
+                    breed.lower()
+                ]
+
+                break
+
+
+    # -----------------------------------------------------
+    # PET NAME
+    # -----------------------------------------------------
+
+    if "name" in result.columns:
+
+        all_names = (
+            inventory_df["name"]
+            .dropna()
+            .astype(str)
+            .str.strip()
+            .unique()
+        )
+
+        for pet_name in all_names:
+
+            if (
+                pet_name
+                and pet_name.lower() in q
+            ):
+
+                result = result[
+                    result["name"]
+                    .astype(str)
+                    .str.lower()
+                    .str.strip()
+                    ==
+                    pet_name.lower()
+                ]
+
+                break
+
+
+    # -----------------------------------------------------
+    # LOCATION
+    # -----------------------------------------------------
+
+    if "location" in result.columns:
+
+        all_locations = (
+            inventory_df["location"]
+            .dropna()
+            .astype(str)
+            .str.strip()
+            .unique()
+        )
+
+        for location in all_locations:
+
+            if (
+                location
+                and location.lower() in q
+            ):
+
+                result = result[
+                    result["location"]
+                    .astype(str)
+                    .str.lower()
+                    .str.strip()
+                    ==
+                    location.lower()
+                ]
+
+                break
+
+
+    # -----------------------------------------------------
+    # MAXIMUM PRICE
+    # -----------------------------------------------------
+
+    price_patterns = [
+
+        r"under\s*[₹rs.]?\s*([\d,]+)",
+
+        r"below\s*[₹rs.]?\s*([\d,]+)",
+
+        r"less\s+than\s*[₹rs.]?\s*([\d,]+)",
+
+        r"upto\s*[₹rs.]?\s*([\d,]+)",
+
+        r"up\s+to\s*[₹rs.]?\s*([\d,]+)",
+
+        r"within\s*[₹rs.]?\s*([\d,]+)",
+
+        r"maximum\s*[₹rs.]?\s*([\d,]+)",
+
+        r"max\s*[₹rs.]?\s*([\d,]+)",
+
+    ]
+
+    max_price = None
+
+    for pattern in price_patterns:
+
+        match = re.search(
+            pattern,
+            q,
+        )
+
+        if match:
+
+            try:
+
+                max_price = float(
+                    match.group(1)
+                    .replace(",", "")
                 )
 
+            except ValueError:
+
+                max_price = None
+
+            break
+
+
+    if max_price is not None:
+
+        numeric_prices = pd.to_numeric(
+            result["price"],
+            errors="coerce",
+        )
+
+        result = result[
+            numeric_prices
+            <= max_price
+        ]
+
+
+    return result.reset_index(
+        drop=True
+    )
+
+
+# =========================================================
+# PET CARD FUNCTION
+# =========================================================
+
+def render_pet_cards(
+    pet_dataframe,
+    prefix="pet",
+):
+    """
+    Render inventory records as PETORA cards.
+    """
+
+    if pet_dataframe.empty:
+
+        st.info(
+            "No pets found."
+        )
+
+        return
+
+
+    pet_rows = pet_dataframe.head(
+        12
+    )
+
+
+    for start_index in range(
+        0,
+        len(pet_rows),
+        3,
+    ):
+
+        current_row = pet_rows.iloc[
+            start_index:start_index + 3
+        ]
+
+        columns = st.columns(3)
+
+
+        for column, (
+            _,
+            pet,
+        ) in zip(
+            columns,
+            current_row.iterrows(),
+        ):
+
+            with column:
+
+                # -------------------------------------------------
+                # IMAGE
+                # -------------------------------------------------
+
+                photo = str(
+                    pet.get(
+                        "photo",
+                        "",
+                    )
+                ).strip()
+
+                photo_path = ""
+
+                if photo:
+
+                    if os.path.isabs(
+                        photo
+                    ):
+
+                        photo_path = photo
+
+                    else:
+
+                        photo_path = os.path.join(
+                            BASE_DIR,
+                            photo,
+                        )
+
+                image = None
 
                 if (
-                    photo_name
-                    and os.path.isfile(
-                        image_path
+                    photo_path
+                    and os.path.exists(
+                        photo_path
                     )
                 ):
 
-                    try:
-
-                        puppy_image = Image.open(
-                            image_path
-                        ).convert(
-                            "RGB"
-                        )
+                    image = prepare_image(
+                        photo_path
+                    )
 
 
-                        # Same displayed dimensions for all
-                        # puppy images.
-                        puppy_image = ImageOps.fit(
-                            puppy_image,
-                            (600, 450),
-                            method=Image.Resampling.LANCZOS,
-                            centering=(0.5, 0.5)
-                        )
+                if image is not None:
 
-
-                        st.image(
-                            puppy_image,
-                            width="stretch"
-                        )
-
-                    except Exception:
-
-                        st.info(
-                            "Image unavailable."
-                        )
+                    st.image(
+                        image,
+                        use_container_width=True,
+                    )
 
                 else:
 
-                    st.info(
-                        "Image unavailable."
+                    render_html(
+                        """
+                        <div
+                            style="
+                                height:260px;
+                                background:#edf1ea;
+                                display:flex;
+                                align-items:center;
+                                justify-content:center;
+                                font-size:70px;
+                                border-radius:20px 20px 0 0;
+                            "
+                        >
+                            🐾
+                        </div>
+                        """
                     )
 
 
-                # ------------------------------------------------
-                # CARD INFORMATION
-                # ------------------------------------------------
+                # -------------------------------------------------
+                # DETAILS
+                # -------------------------------------------------
 
-                safe_breed = html.escape(
-                    str(
-                        puppy["breed"]
-                    )
-                )
-
-                safe_id = html.escape(
-                    str(
-                        puppy["puppy_id"]
-                    )
-                )
-
-                safe_gender = html.escape(
-                    str(
-                        puppy["gender"]
-                    )
-                )
-
-                safe_vaccinated = html.escape(
-                    str(
-                        puppy["vaccinated"]
+                pet_id = safe_text(
+                    pet.get(
+                        "pet_id",
+                        "",
                     )
                 )
 
-                safe_location = html.escape(
-                    str(
-                        puppy["location"]
+                breed = safe_text(
+                    pet.get(
+                        "breed",
+                        "",
+                    )
+                )
+
+                name = safe_text(
+                    pet.get(
+                        "name",
+                        "",
+                    )
+                )
+
+                gender = safe_text(
+                    pet.get(
+                        "gender",
+                        "",
+                    )
+                )
+
+                age = safe_text(
+                    pet.get(
+                        "age",
+                        "",
+                    )
+                )
+
+                location = safe_text(
+                    pet.get(
+                        "location",
+                        "",
+                    )
+                )
+
+                vaccinated = safe_text(
+                    pet.get(
+                        "vaccinated",
+                        "",
+                    )
+                )
+
+                category = safe_text(
+                    pet.get(
+                        "category",
+                        "",
+                    )
+                )
+
+                price = format_price(
+                    pet.get(
+                        "price",
+                        "",
                     )
                 )
 
 
-                st.html(
+                render_html(
                     f"""
-                    <div class="puppy-box">
+                    <div class="pet-body">
 
-                        <div class="puppy-breed">
-                            🐶 {safe_breed}
+                        <div class="pet-breed">
+                            {breed}
                         </div>
 
-                        <div class="puppy-id">
-                            Puppy ID:
-                            <b>{safe_id}</b>
+                        <div class="pet-name">
+                            {name}
                         </div>
 
-                        <div class="puppy-line">
-                            Gender:
-                            <b>{safe_gender}</b>
+                        <div class="pet-id">
+                            ID: {pet_id}
                         </div>
 
-                        <div class="puppy-line">
-                            Age:
-                            <b>{int(puppy["age_weeks"])} weeks</b>
+                        <div class="pet-meta">
+
+                            <span>
+                                👤 {gender}
+                            </span>
+
+                            <span>
+                                📅 {age}
+                            </span>
+
                         </div>
 
-                        <div class="puppy-price">
-                            ₹{puppy["price"]:,.0f}
+                        <div class="pet-meta">
+
+                            <span>
+                                📍 {location}
+                            </span>
+
+                            <span>
+                                💉 {vaccinated}
+                            </span>
+
                         </div>
 
-                        <span class="available-pill">
-                            ✓ Available
-                        </span>
-
-                        <div class="puppy-line">
-                            Vaccinated:
-                            <b>{safe_vaccinated}</b>
+                        <div class="pet-price">
+                            {price}
                         </div>
 
-                        <div class="puppy-line">
-                            Location:
-                            <b>{safe_location}</b>
+                        <div class="available-badge">
+                            ✓ Available · {category}
                         </div>
 
                     </div>
@@ -1390,44 +1974,133 @@ with left_column:
                 )
 
 
+                # -------------------------------------------------
+                # VIEW DETAILS
+                # -------------------------------------------------
+
                 if st.button(
-                    "📞 I'm Interested",
+                    "View Details",
                     key=(
-                        f"interest_"
-                        f"{puppy['puppy_id']}"
-                    )
+                        f"{prefix}_details_"
+                        f"{pet['pet_id']}"
+                    ),
+                    use_container_width=True,
                 ):
 
-                    st.session_state.lead_request = {
-                        "puppy_id": str(
-                            puppy["puppy_id"]
-                        ),
-                        "message": (
-                            "Customer is interested in "
-                            f"{puppy['puppy_id']}"
-                        ),
-                    }
+                    st.session_state[
+                        "detail_pet_id"
+                    ] = str(
+                        pet["pet_id"]
+                    )
 
                     st.rerun()
 
 
-# ============================================================
-# RIGHT COLUMN — AI
-# ============================================================
+                # -------------------------------------------------
+                # INTEREST
+                # -------------------------------------------------
 
-with right_column:
+                if st.button(
+                    "I'm Interested",
+                    key=(
+                        f"{prefix}_interest_"
+                        f"{pet['pet_id']}"
+                    ),
+                    use_container_width=True,
+                ):
 
-    st.html(
-        """
-        <div class="ai-box">
+                    st.session_state[
+                        "selected_pet"
+                    ] = str(
+                        pet["pet_id"]
+                    )
 
-            <div class="ai-title">
-                🤖 PETORA AI Assistant
+                    st.session_state[
+                        "selected_breed"
+                    ] = str(
+                        pet["breed"]
+                    )
+
+                    st.session_state[
+                        "detail_pet_id"
+                    ] = None
+
+                    st.rerun()
+
+
+# =========================================================
+# HEADER
+# =========================================================
+
+logo_b64 = ""
+
+if os.path.exists(
+    LOGO_FILE
+):
+
+    logo_b64 = image_to_base64(
+        LOGO_FILE
+    )
+
+
+if logo_b64:
+
+    render_html(
+        f"""
+        <div class="petora-header">
+
+            <div class="petora-brand">
+
+                <img
+                    src="data:image/png;base64,{logo_b64}"
+                    class="petora-logo-small"
+                    alt="PETORA"
+                >
+
+                <div>
+
+                    <div class="brand-title">
+                        PETORA
+                    </div>
+
+                    <div class="brand-subtitle">
+                        Pets Beyond Borders
+                    </div>
+
+                </div>
+
             </div>
 
-            <div class="ai-description">
-                Ask about puppies, prices, availability,
-                breeds or pet care.
+            <div class="header-tagline">
+                Different Pets.<br>
+                Same Love. 🐾
+            </div>
+
+        </div>
+        """
+    )
+
+else:
+
+    render_html(
+        """
+        <div class="petora-header">
+
+            <div>
+
+                <div class="brand-title">
+                    PETORA
+                </div>
+
+                <div class="brand-subtitle">
+                    Pets Beyond Borders
+                </div>
+
+            </div>
+
+            <div class="header-tagline">
+                Different Pets.<br>
+                Same Love. 🐾
             </div>
 
         </div>
@@ -1435,375 +2108,1264 @@ with right_column:
     )
 
 
-    # --------------------------------------------------------
-    # CHAT HISTORY
-    # --------------------------------------------------------
+# =========================================================
+# NAVIGATION
+# =========================================================
 
-    for message in st.session_state.messages:
+render_html(
+    """
+    <div class="nav-wrap">
 
-        if message["role"] == "user":
+        <div class="nav-inner">
 
-            safe_message = html.escape(
-                str(
-                    message["content"]
-                )
-            )
+            <a
+                class="nav-item"
+                href="#home"
+            >
+                🏠 Home
+            </a>
 
-            st.html(
-                f"""
-                <div class="chat-user">
-                    {safe_message}
-                </div>
-                """
-            )
+            <a
+                class="nav-item"
+                href="#categories"
+            >
+                🐾 Pets
+            </a>
 
-        else:
+            <a
+                class="nav-item"
+                href="#featured-pets"
+            >
+                ⭐ Featured
+            </a>
 
-            safe_message = (
-                html.escape(
-                    str(
-                        message["content"]
-                    )
-                )
-                .replace(
-                    "\n",
-                    "<br>"
-                )
-            )
+            <a
+                class="nav-item"
+                href="#ai-assistant"
+            >
+                🤖 AI Assistant
+            </a>
 
-            st.html(
-                f"""
-                <div class="chat-ai">
-                    {safe_message}
-                </div>
-                """
-            )
+            <a
+                class="nav-item"
+                href="#about"
+            >
+                ℹ️ About
+            </a>
+
+        </div>
+
+    </div>
+    """
+)
 
 
-    # --------------------------------------------------------
-    # CHAT FORM
-    # --------------------------------------------------------
+# =========================================================
+# HERO
+# =========================================================
 
-    with st.form(
-        "petora_chat_form",
-        clear_on_submit=True
+render_html(
+    """
+    <section
+        class="hero"
+        id="home"
+    >
+
+        <div class="hero-content">
+
+            <div class="hero-kicker">
+                Welcome to PETORA
+            </div>
+
+            <h1 class="hero-title">
+                Your Complete<br>
+                <span>Pet Companion</span>
+            </h1>
+
+            <div class="hero-lead">
+                Discover puppies today and explore
+                a growing world of pets tomorrow —
+                from dogs and cats to aquatics,
+                reptiles and exotic pets.
+            </div>
+
+            <div class="hero-actions">
+
+                <a
+                    class="hero-btn-primary"
+                    href="#featured-pets"
+                >
+                    Explore Pets →
+                </a>
+
+                <a
+                    class="hero-btn-secondary"
+                    href="#ai-assistant"
+                >
+                    Ask PETORA AI
+                </a>
+
+            </div>
+
+        </div>
+
+
+        <div class="hero-orbit">
+
+            <div class="hero-orbit-inner">
+                🐶 🐱
+            </div>
+
+        </div>
+
+
+        <div class="hero-mini-card">
+            🐾 Smart Pet Discovery
+        </div>
+
+    </section>
+    """
+)
+
+
+# =========================================================
+# SEARCH / MANUAL FILTERS
+# =========================================================
+
+render_html(
+    """
+    <div class="search-section">
+
+        <div class="section-label">
+            Find Your Match
+        </div>
+
+        <div class="section-title">
+            Search Available Pets
+        </div>
+
+        <div class="section-copy">
+            Search by pet ID, name, breed,
+            category, gender and budget.
+        </div>
+
+    </div>
+    """
+)
+
+
+filter_col1, filter_col2, filter_col3, filter_col4 = st.columns(
+    [2.3, 1.4, 1.0, 1.3]
+)
+
+
+with filter_col1:
+
+    search_term = st.text_input(
+        "Search",
+        placeholder=(
+            "Try Shih Tzu, Lucky or ST001..."
+        ),
+    )
+
+
+with filter_col2:
+
+    if (
+        not inventory.empty
+        and "breed" in inventory.columns
     ):
 
-        query = st.text_input(
-            "Ask PETORA AI",
-            placeholder=(
-                "Ask about puppies, prices "
-                "or availability..."
-            ),
-            label_visibility="collapsed"
-        )
-
-
-        ask_button = st.form_submit_button(
-            "➤ Ask PETORA"
-        )
-
-
-    # --------------------------------------------------------
-    # PROCESS QUESTION
-    # --------------------------------------------------------
-
-    if ask_button and query.strip():
-
-        query = query.strip()
-
-
-        # ----------------------------------------------------
-        # STORE USER MESSAGE
-        # ----------------------------------------------------
-
-        st.session_state.messages.append(
-            {
-                "role": "user",
-                "content": query
-            }
-        )
-
-
-        # ----------------------------------------------------
-        # FIND PUPPY ID
-        # ----------------------------------------------------
-
-        puppy_id = find_puppy_id(
-            query
-        )
-
-        puppy = find_puppy(
-            puppy_id
-        )
-
-
-        # ----------------------------------------------------
-        # BUYING INTENT
-        # ----------------------------------------------------
-
-        if detect_buying_intent(
-            query
-        ):
-
-            st.session_state.lead_request = {
-                "puppy_id": puppy_id,
-                "message": query
-            }
-
-
-        # ----------------------------------------------------
-        # EXACT PUPPY ANSWER
-        # ----------------------------------------------------
-
-        if (
-            puppy_id
-            and puppy is not None
-        ):
-
-            if (
-                str(
-                    puppy["status"]
-                ).lower()
-                == "available"
-            ):
-
-                answer = (
-                    f"{puppy_id} is available.\n\n"
-                    f"Breed: {puppy['breed']}\n\n"
-                    f"Gender: {puppy['gender']}\n\n"
-                    f"Age: {int(puppy['age_weeks'])} weeks\n\n"
-                    f"Price: ₹{puppy['price']:,.0f}\n\n"
-                    f"Vaccinated: {puppy['vaccinated']}\n\n"
-                    f"Location: {puppy['location']}"
-                )
-
-            else:
-
-                answer = (
-                    f"{puppy_id} is currently "
-                    f"{str(puppy['status']).lower()}."
-                )
-
-
-        else:
-
-            # ------------------------------------------------
-            # RAG
-            # ------------------------------------------------
-
-            context = make_rag_context(
-                query
+        breed_options = (
+            ["All Breeds"]
+            +
+            sorted(
+                inventory["breed"]
+                .dropna()
+                .astype(str)
+                .unique()
+                .tolist()
             )
-
-
-            # ------------------------------------------------
-            # HUGGING FACE TOKEN
-            # ------------------------------------------------
-
-            try:
-
-                hf_token = st.secrets[
-                    "HF_TOKEN"
-                ]
-
-            except Exception:
-
-                hf_token = None
-
-
-            if not hf_token:
-
-                answer = (
-                    "PETORA AI is not configured.\n\n"
-                    "Please add HF_TOKEN to your "
-                    "Streamlit Secrets."
-                )
-
-            else:
-
-                # ------------------------------------------------
-                # HUGGING FACE INFERENCE PROVIDERS
-                # ------------------------------------------------
-
-                try:
-
-                    client = InferenceClient(
-                        api_key=hf_token,
-                        provider="auto"
-                    )
-
-
-                    response = (
-                        client.chat.completions.create(
-                            model=HF_MODEL,
-                            messages=[
-                                {
-                                    "role": "system",
-                                    "content": (
-                                        "You are PETORA AI "
-                                        "Assistant for a pet "
-                                        "business.\n\n"
-
-                                        "Use ONLY the supplied "
-                                        "context.\n\n"
-
-                                        "Never invent puppy "
-                                        "prices, breeds, ages, "
-                                        "availability, "
-                                        "vaccination information "
-                                        "or locations.\n\n"
-
-                                        "If the answer is not in "
-                                        "the context, say exactly "
-                                        "that you do not know "
-                                        "based on the available "
-                                        "information.\n\n"
-
-                                        "Keep answers concise, "
-                                        "helpful and suitable "
-                                        "for customers."
-                                    )
-                                },
-                                {
-                                    "role": "user",
-                                    "content": (
-                                        "Context:\n\n"
-                                        f"{context}\n\n"
-                                        "Customer question:\n\n"
-                                        f"{query}"
-                                    )
-                                }
-                            ],
-                            max_tokens=300,
-                            temperature=0.2
-                        )
-                    )
-
-
-                    answer = (
-                        response
-                        .choices[0]
-                        .message
-                        .content
-                    )
-
-
-                except Exception as error:
-
-                    # Do NOT expose the token.
-                    answer = (
-                        "⚠️ PETORA AI could not complete "
-                        "the request right now.\n\n"
-                        f"Model: {HF_MODEL}\n"
-                        f"Error: {type(error).__name__}: "
-                        f"{error}"
-                    )
-
-
-        # ----------------------------------------------------
-        # STORE AI MESSAGE
-        # ----------------------------------------------------
-
-        st.session_state.messages.append(
-            {
-                "role": "assistant",
-                "content": answer
-            }
-        )
-
-
-        st.rerun()
-
-
-# ============================================================
-# LEAD CAPTURE
-# ============================================================
-
-if st.session_state.lead_request:
-
-    st.divider()
-
-
-    st.html(
-        """
-        <div class="lead-box">
-
-            <div class="section-heading">
-                📞 Interested in a Puppy?
-            </div>
-
-        </div>
-        """
-    )
-
-
-    lead_puppy_id = (
-        st.session_state.lead_request[
-            "puppy_id"
-        ]
-    )
-
-    lead_message = (
-        st.session_state.lead_request[
-            "message"
-        ]
-    )
-
-
-    lead_puppy = find_puppy(
-        lead_puppy_id
-    )
-
-
-    if lead_puppy is not None:
-
-        lead_breed = str(
-            lead_puppy["breed"]
-        )
-
-        st.write(
-            f"Enquiry for **{lead_puppy_id} "
-            f"({lead_breed})**"
         )
 
     else:
 
-        lead_breed = ""
+        breed_options = [
+            "All Breeds"
+        ]
 
-        st.write(
-            "Please specify which puppy you are interested in."
+    breed_filter = st.selectbox(
+        "Breed",
+        breed_options,
+    )
+
+
+with filter_col3:
+
+    gender_filter = st.selectbox(
+        "Gender",
+        [
+            "All",
+            "Male",
+            "Female",
+        ],
+    )
+
+
+with filter_col4:
+
+    budget_filter = st.selectbox(
+        "Budget",
+        [
+            "Any Budget",
+            "Under ₹20,000",
+            "Under ₹25,000",
+            "Under ₹30,000",
+        ],
+    )
+
+
+# =========================================================
+# CATEGORY
+# =========================================================
+
+render_html(
+    """
+    <div
+        id="categories"
+        style="height:1px;"
+    ></div>
+
+    <div
+        style="
+            margin-top:35px;
+            margin-bottom:16px;
+        "
+    >
+
+        <div class="section-label">
+            Explore PETORA
+        </div>
+
+        <div class="section-title">
+            Shop by Category
+        </div>
+
+        <div class="section-copy">
+            Choose a category to instantly
+            filter available listings.
+        </div>
+
+    </div>
+    """
+)
+
+
+categories = [
+    (
+        "All",
+        "🐾",
+        "All Pets",
+        "Browse everything",
+    ),
+    (
+        "Dogs",
+        "🐶",
+        "Dogs",
+        "Puppies & companions",
+    ),
+    (
+        "Cats",
+        "🐱",
+        "Cats",
+        "Feline companions",
+    ),
+    (
+        "Aquatics",
+        "🐟",
+        "Aquatics",
+        "Fish & aquatic pets",
+    ),
+    (
+        "Reptiles",
+        "🐍",
+        "Reptiles",
+        "Terrarium pets",
+    ),
+    (
+        "Exotic Pets",
+        "🦜",
+        "Exotic Pets",
+        "Unique companions",
+    ),
+]
+
+
+category_columns = st.columns(
+    len(categories)
+)
+
+
+for column, (
+    category_value,
+    icon,
+    name,
+    description,
+) in zip(
+    category_columns,
+    categories,
+):
+
+    with column:
+
+        is_active = (
+            st.session_state[
+                "selected_category"
+            ]
+            == category_value
         )
+
+        active_class = (
+            "active"
+            if is_active
+            else ""
+        )
+
+        render_html(
+            f"""
+            <div class="category-card {active_class}">
+
+                <div class="category-icon">
+                    {safe_text(icon)}
+                </div>
+
+                <div class="category-name">
+                    {safe_text(name)}
+                </div>
+
+                <div class="category-copy">
+                    {safe_text(description)}
+                </div>
+
+            </div>
+            """
+        )
+
+        if st.button(
+            f"View {name}",
+            key=f"category_{category_value}",
+            use_container_width=True,
+        ):
+
+            st.session_state[
+                "selected_category"
+            ] = category_value
+
+            st.session_state[
+                "detail_pet_id"
+            ] = None
+
+            st.session_state[
+                "selected_pet"
+            ] = None
+
+            st.rerun()
+
+
+# =========================================================
+# FILTER INVENTORY
+# =========================================================
+
+filtered_inventory = inventory.copy()
+
+
+# Category
+selected_category = (
+    st.session_state[
+        "selected_category"
+    ]
+)
+
+if (
+    selected_category != "All"
+    and not filtered_inventory.empty
+):
+
+    filtered_inventory = (
+        filtered_inventory[
+            filtered_inventory[
+                "category"
+            ]
+            .astype(str)
+            .str.strip()
+            .str.lower()
+            ==
+            selected_category.lower()
+        ]
+    )
+
+
+# Search
+if (
+    search_term.strip()
+    and not filtered_inventory.empty
+):
+
+    search_value = (
+        search_term
+        .strip()
+        .lower()
+    )
+
+    search_columns = [
+        "pet_id",
+        "category",
+        "breed",
+        "name",
+        "location",
+    ]
+
+    search_mask = pd.Series(
+        False,
+        index=filtered_inventory.index,
+    )
+
+    for column in search_columns:
+
+        search_mask = (
+            search_mask
+            |
+            filtered_inventory[column]
+            .astype(str)
+            .str.lower()
+            .str.contains(
+                search_value,
+                na=False,
+                regex=False,
+            )
+        )
+
+    filtered_inventory = (
+        filtered_inventory[
+            search_mask
+        ]
+    )
+
+
+# Breed
+if (
+    breed_filter != "All Breeds"
+    and not filtered_inventory.empty
+):
+
+    filtered_inventory = (
+        filtered_inventory[
+            filtered_inventory[
+                "breed"
+            ]
+            .astype(str)
+            == breed_filter
+        ]
+    )
+
+
+# Gender
+if (
+    gender_filter != "All"
+    and not filtered_inventory.empty
+):
+
+    filtered_inventory = (
+        filtered_inventory[
+            filtered_inventory[
+                "gender"
+            ]
+            .astype(str)
+            .str.lower()
+            ==
+            gender_filter.lower()
+        ]
+    )
+
+
+# Budget
+if (
+    budget_filter != "Any Budget"
+    and not filtered_inventory.empty
+):
+
+    budget_limits = {
+        "Under ₹20,000": 20000,
+        "Under ₹25,000": 25000,
+        "Under ₹30,000": 30000,
+    }
+
+    selected_limit = budget_limits[
+        budget_filter
+    ]
+
+    numeric_prices = pd.to_numeric(
+        filtered_inventory[
+            "price"
+        ],
+        errors="coerce",
+    )
+
+    filtered_inventory = (
+        filtered_inventory[
+            numeric_prices
+            <= selected_limit
+        ]
+    )
+
+
+# Available only
+if not filtered_inventory.empty:
+
+    filtered_inventory = (
+        filtered_inventory[
+            filtered_inventory[
+                "status"
+            ]
+            .astype(str)
+            .str.lower()
+            .str.strip()
+            ==
+            "available"
+        ]
+    )
+
+
+# =========================================================
+# PET DETAIL VIEW
+# =========================================================
+
+detail_pet_id = (
+    st.session_state[
+        "detail_pet_id"
+    ]
+)
+
+
+if detail_pet_id:
+
+    detail_match = inventory[
+        inventory[
+            "pet_id"
+        ]
+        .astype(str)
+        ==
+        str(detail_pet_id)
+    ]
+
+    if not detail_match.empty:
+
+        pet = detail_match.iloc[0]
+
+        photo = str(
+            pet.get(
+                "photo",
+                "",
+            )
+        ).strip()
+
+        photo_path = ""
+
+        if photo:
+
+            if os.path.isabs(
+                photo
+            ):
+
+                photo_path = photo
+
+            else:
+
+                photo_path = os.path.join(
+                    BASE_DIR,
+                    photo,
+                )
+
+        detail_image = None
+
+        if (
+            photo_path
+            and os.path.exists(
+                photo_path
+            )
+        ):
+
+            detail_image = prepare_image(
+                photo_path
+            )
+
+
+        render_html(
+            """
+            <div
+                id="pet-details"
+                style="
+                    height:1px;
+                    margin-top:25px;
+                "
+            ></div>
+
+            <div
+                style="
+                    margin-top:35px;
+                    margin-bottom:15px;
+                "
+            >
+
+                <div class="section-label">
+                    Pet Profile
+                </div>
+
+                <div class="section-title">
+                    Meet Your Match
+                </div>
+
+            </div>
+            """
+        )
+
+
+        detail_left, detail_right = st.columns(
+            [1.08, 1]
+        )
+
+
+        with detail_left:
+
+            if detail_image is not None:
+
+                st.image(
+                    detail_image,
+                    use_container_width=True,
+                )
+
+            else:
+
+                render_html(
+                    """
+                    <div
+                        style="
+                            min-height:450px;
+                            background:#edf1ea;
+                            border-radius:20px;
+                            display:flex;
+                            align-items:center;
+                            justify-content:center;
+                            font-size:90px;
+                        "
+                    >
+                        🐾
+                    </div>
+                    """
+                )
+
+
+        with detail_right:
+
+            render_html(
+                f"""
+                <div class="detail-shell">
+
+                    <div class="detail-kicker">
+                        {safe_text(pet["category"])}
+                    </div>
+
+                    <div class="detail-title">
+                        {safe_text(pet["breed"])}
+                    </div>
+
+                    <div class="detail-subtitle">
+                        {safe_text(pet["name"])}
+                        · ID {safe_text(pet["pet_id"])}
+                    </div>
+
+                    <div class="detail-price">
+                        {format_price(pet["price"])}
+                    </div>
+
+                    <div class="detail-grid">
+
+                        <div class="detail-stat">
+
+                            <div class="detail-stat-label">
+                                Gender
+                            </div>
+
+                            <div class="detail-stat-value">
+                                {safe_text(pet["gender"])}
+                            </div>
+
+                        </div>
+
+
+                        <div class="detail-stat">
+
+                            <div class="detail-stat-label">
+                                Age
+                            </div>
+
+                            <div class="detail-stat-value">
+                                {safe_text(pet["age"])}
+                            </div>
+
+                        </div>
+
+
+                        <div class="detail-stat">
+
+                            <div class="detail-stat-label">
+                                Vaccination
+                            </div>
+
+                            <div class="detail-stat-value">
+                                {safe_text(pet["vaccinated"])}
+                            </div>
+
+                        </div>
+
+
+                        <div class="detail-stat">
+
+                            <div class="detail-stat-label">
+                                Location
+                            </div>
+
+                            <div class="detail-stat-value">
+                                {safe_text(pet["location"])}
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="detail-description">
+
+                        A {safe_text(pet["breed"])}
+                        named {safe_text(pet["name"])}
+                        is listed in the PETORA marketplace.
+
+                        <br><br>
+
+                        Please contact PETORA to confirm
+                        current availability and the latest
+                        listing details before making a decision.
+
+                    </div>
+
+                </div>
+                """
+            )
+
+
+            if st.button(
+                "❤️ Enquire About This Pet",
+                key="detail_enquire",
+                use_container_width=True,
+            ):
+
+                st.session_state[
+                    "selected_pet"
+                ] = str(
+                    pet["pet_id"]
+                )
+
+                st.session_state[
+                    "selected_breed"
+                ] = str(
+                    pet["breed"]
+                )
+
+                st.session_state[
+                    "detail_pet_id"
+                ] = None
+
+                st.rerun()
+
+
+            if st.button(
+                "✕ Close Details",
+                key="close_details",
+                use_container_width=True,
+            ):
+
+                st.session_state[
+                    "detail_pet_id"
+                ] = None
+
+                st.rerun()
+
+
+# =========================================================
+# FEATURED LISTINGS
+# =========================================================
+
+category_label = (
+    "All Pets"
+    if selected_category == "All"
+    else selected_category
+)
+
+
+render_html(
+    f"""
+    <div
+        id="featured-pets"
+        style="
+            height:1px;
+            margin-top:25px;
+        "
+    ></div>
+
+    <div
+        style="
+            display:flex;
+            align-items:end;
+            justify-content:space-between;
+            gap:20px;
+            margin-bottom:18px;
+        "
+    >
+
+        <div>
+
+            <div class="section-label">
+                Featured Listings
+            </div>
+
+            <div class="section-title">
+                {safe_text(category_label)}
+            </div>
+
+            <div class="section-copy">
+                Available pets matching your filters.
+            </div>
+
+        </div>
+
+        <div
+            style="
+                background:#edf5ec;
+                color:#155039;
+                padding:9px 14px;
+                border-radius:999px;
+                font-size:12px;
+                font-weight:800;
+            "
+        >
+            {len(filtered_inventory)} Available
+        </div>
+
+    </div>
+    """
+)
+
+
+render_pet_cards(
+    filtered_inventory,
+    prefix="featured",
+)
+
+
+# =========================================================
+# AI ASSISTANT
+# =========================================================
+
+render_html(
+    """
+    <div
+        id="ai-assistant"
+        style="
+            height:1px;
+            margin-top:40px;
+        "
+    ></div>
+    """
+)
+
+
+ai_left, ai_right = st.columns(
+    [1,1.55]
+)
+
+
+with ai_left:
+
+    render_html(
+        """
+        <div class="ai-panel">
+
+            <div class="ai-badge">
+                PETORA INTELLIGENCE
+            </div>
+
+            <div class="ai-title">
+                Meet PETORA AI
+            </div>
+
+            <div class="ai-copy">
+                Search our real inventory using
+                normal language. PETORA can understand
+                breed, gender, budget, location and
+                category preferences.
+            </div>
+
+            <br>
+
+            <div
+                style="
+                    color:white;
+                    font-size:13px;
+                    line-height:1.9;
+                "
+            >
+
+                <strong>
+                    Try:
+                </strong>
+
+                <br>
+
+                • Show female Shih Tzu under ₹20,000
+
+                <br>
+
+                • Find German Shepherds in Patna
+
+                <br>
+
+                • Show dogs under ₹25,000
+
+                <br>
+
+                • What does PETORA offer?
+
+            </div>
+
+        </div>
+        """
+    )
+
+
+with ai_right:
+
+    st.subheader(
+        "🤖 Ask PETORA AI"
+    )
+
+
+    smart_question = st.text_input(
+        "Smart Search",
+        placeholder=(
+            "Example: Show female Shih Tzu under ₹20,000 in Patna"
+        ),
+        key="smart_search_question",
+    )
+
+
+    smart_search_button = st.button(
+        "🔎 Search with PETORA AI",
+        use_container_width=True,
+        key="smart_search_button",
+    )
+
+
+    if smart_search_button:
+
+        if not smart_question.strip():
+
+            st.warning(
+                "Please describe the pet you are looking for."
+            )
+
+        else:
+
+            smart_results = (
+                smart_search_inventory(
+                    smart_question,
+                    inventory,
+                )
+            )
+
+
+            if not smart_results.empty:
+
+                render_html(
+                    f"""
+                    <div class="smart-result">
+
+                        <strong>
+                            🔎 PETORA found
+                            {len(smart_results)}
+                            matching pet(s).
+                        </strong>
+
+                        <br>
+
+                        Showing real inventory
+                        matching your request.
+
+                    </div>
+                    """
+                )
+
+                render_pet_cards(
+                    smart_results,
+                    prefix="smart",
+                )
+
+
+            else:
+
+                st.warning(
+                    "I couldn't find a matching pet "
+                    "in the current inventory."
+                )
+
+                st.markdown(
+                    "You can try a different breed, "
+                    "gender, location or budget."
+                )
+
+
+    # -----------------------------------------------------
+    # GENERAL AI QUESTION
+    # -----------------------------------------------------
+
+    st.markdown(
+        "<hr>",
+        unsafe_allow_html=True,
+    )
+
+    st.subheader(
+        "💬 Ask a General Question"
+    )
+
+
+    general_question = st.text_input(
+        "Your Question",
+        placeholder=(
+            "Ask about breeds, pet care or PETORA..."
+        ),
+        key="general_question",
+    )
+
+
+    general_button = st.button(
+        "Ask PETORA AI",
+        use_container_width=True,
+        key="general_ai_button",
+    )
+
+
+    if general_button:
+
+        if not general_question.strip():
+
+            st.warning(
+                "Please enter a question."
+            )
+
+        else:
+
+            # Exact pet ID lookup
+            matched_pet = None
+
+            question_lower = (
+                general_question.lower()
+            )
+
+
+            if not inventory.empty:
+
+                for _, pet in inventory.iterrows():
+
+                    current_id = (
+                        str(
+                            pet["pet_id"]
+                        )
+                        .lower()
+                        .strip()
+                    )
+
+                    if (
+                        current_id
+                        and current_id
+                        in question_lower
+                    ):
+
+                        matched_pet = pet
+
+                        break
+
+
+            if matched_pet is not None:
+
+                answer = (
+                    f"**{matched_pet['breed']}** "
+                    f"({matched_pet['pet_id']}) "
+                    f"is currently "
+                    f"**{matched_pet['status']}**.\n\n"
+
+                    f"Name: "
+                    f"**{matched_pet['name']}**\n\n"
+
+                    f"Price: "
+                    f"**{format_price(matched_pet['price'])}**\n\n"
+
+                    f"Gender: "
+                    f"**{matched_pet['gender']}**\n\n"
+
+                    f"Age: "
+                    f"**{matched_pet['age']}**\n\n"
+
+                    f"Category: "
+                    f"**{matched_pet['category']}**\n\n"
+
+                    f"Location: "
+                    f"**{matched_pet['location']}**\n\n"
+
+                    f"Vaccinated: "
+                    f"**{matched_pet['vaccinated']}**"
+                )
+
+            else:
+
+                context = rag_search(
+                    general_question
+                )
+
+                answer = ask_ai(
+                    general_question,
+                    context,
+                )
+
+
+            st.markdown(
+                "### PETORA AI"
+            )
+
+            st.markdown(
+                answer
+            )
+
+
+# =========================================================
+# ENQUIRY FORM
+# =========================================================
+
+if st.session_state.get(
+    "selected_pet"
+):
+
+    selected_pet_id = (
+        st.session_state[
+            "selected_pet"
+        ]
+    )
+
+    selected_breed = (
+        st.session_state[
+            "selected_breed"
+        ]
+    )
+
+
+    render_html(
+        """
+        <div
+            style="
+                margin-top:40px;
+                margin-bottom:15px;
+            "
+        >
+
+            <div class="section-label">
+                Enquiry
+            </div>
+
+            <div class="section-title">
+                Tell Us You're Interested
+            </div>
+
+        </div>
+        """
+    )
+
+
+    st.info(
+        f"You are enquiring about "
+        f"{selected_breed} "
+        f"({selected_pet_id})."
+    )
 
 
     with st.form(
-        "petora_lead_form"
+        "enquiry_form"
     ):
 
-        name = st.text_input(
-            "Your Name",
-            placeholder="Enter your name"
+        form_col1, form_col2 = st.columns(
+            2
         )
 
-        phone = st.text_input(
-            "Phone Number",
-            placeholder="Enter your phone number"
+
+        with form_col1:
+
+            customer_name = st.text_input(
+                "Your Name"
+            )
+
+
+        with form_col2:
+
+            customer_phone = st.text_input(
+                "Phone Number"
+            )
+
+
+        customer_message = st.text_area(
+            "Message",
+            placeholder=(
+                "Tell us what you would like to know..."
+            ),
         )
 
-        submitted = st.form_submit_button(
-            "📩 Submit Enquiry"
+
+        submitted = (
+            st.form_submit_button(
+                "Send Enquiry",
+                use_container_width=True,
+            )
         )
 
 
         if submitted:
 
-            if not name.strip():
+            clean_name = (
+                customer_name.strip()
+            )
+
+            clean_phone = (
+                customer_phone.strip()
+            )
+
+            clean_message = (
+                customer_message.strip()
+            )
+
+
+            if not clean_name:
 
                 st.error(
                     "Please enter your name."
                 )
 
-            elif not phone.strip():
+            elif not clean_phone:
 
                 st.error(
                     "Please enter your phone number."
@@ -1812,43 +3374,93 @@ if st.session_state.lead_request:
             else:
 
                 save_enquiry(
-                    name.strip(),
-                    phone.strip(),
-                    lead_puppy_id,
-                    lead_breed,
-                    lead_message
+                    clean_name,
+                    clean_phone,
+                    selected_pet_id,
+                    selected_breed,
+                    clean_message,
                 )
 
                 st.success(
-                    "✅ Your enquiry has been submitted successfully!"
+                    "Your enquiry has been submitted "
+                    "successfully. PETORA will contact "
+                    "you soon."
                 )
 
-                st.session_state.lead_request = None
 
-                st.rerun()
-
-
-# ============================================================
+# =========================================================
 # TRUST BAR
-# ============================================================
+# =========================================================
 
-st.html(
+render_html(
     """
-    <div class="trust-box">
+    <div class="trust-bar">
 
-        <div class="trust-title">
-            🐾 Wide Range of Pets
-            &nbsp; • &nbsp;
-            🌿 Ethical & Responsible
-            &nbsp; • &nbsp;
-            🚚 Pan India
-            &nbsp; • &nbsp;
-            ❤️ Support & Guidance
+        <div class="trust-item">
+
+            <div class="trust-icon">
+                ✅
+            </div>
+
+            <div class="trust-title">
+                Clear Listings
+            </div>
+
+            <div class="trust-copy">
+                Simple pet information
+            </div>
+
         </div>
 
-        <div class="trust-text">
-            PETORA is designed to grow from puppies
-            into a broader pet marketplace.
+
+        <div class="trust-item">
+
+            <div class="trust-icon">
+                💉
+            </div>
+
+            <div class="trust-title">
+                Vaccination Info
+            </div>
+
+            <div class="trust-copy">
+                Details shown on listings
+            </div>
+
+        </div>
+
+
+        <div class="trust-item">
+
+            <div class="trust-icon">
+                📍
+            </div>
+
+            <div class="trust-title">
+                Local Discovery
+            </div>
+
+            <div class="trust-copy">
+                Starting with Patna
+            </div>
+
+        </div>
+
+
+        <div class="trust-item">
+
+            <div class="trust-icon">
+                🤖
+            </div>
+
+            <div class="trust-title">
+                AI Assistance
+            </div>
+
+            <div class="trust-copy">
+                Smarter pet discovery
+            </div>
+
         </div>
 
     </div>
@@ -1856,28 +3468,45 @@ st.html(
 )
 
 
-# ============================================================
+# =========================================================
 # FOOTER
-# ============================================================
+# =========================================================
 
-st.html(
+render_html(
     """
+    <div
+        id="about"
+        style="height:1px;"
+    ></div>
+
     <div class="footer-box">
 
         <div class="footer-brand">
-            PETORA™
+            PETORA
         </div>
 
-        <div class="footer-tagline">
-            More Pets. A Wilder World.
+        <div class="footer-copy">
+
+            <strong>
+                Pets Beyond Borders
+            </strong>
+
+            <br>
+
+            Different Pets. Same Love.
+
+            <br><br>
+
+            PETORA is being designed as
+            a modern pet discovery platform
+            where customers can explore pets,
+            compare listings and connect
+            through an AI-assisted experience.
+
         </div>
 
-        <div class="footer-small">
-            Dogs • Cats • Aquatics • Reptiles • Exotic Pets
-        </div>
-
-        <div class="footer-small">
-            Care • Trust • Passion • For Every Species
+        <div class="footer-bottom">
+            © 2026 PETORA. All rights reserved.
         </div>
 
     </div>

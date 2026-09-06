@@ -4,3 +4,11 @@ __pycache__/
 *.pyc
 .env
 .DS_Store
+
+.streamlit/
+*.save
+
+GROIFY PROJECT/
+UBN PROJECT/
+instaram inf project/
+app_backup.py
