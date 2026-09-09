@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { google } from "googleapis";
 
-type InventoryPet = {
-  id: string;
+export const dynamic = "force-dynamic";
+
+type InventoryRow = {
+  pet_id: string;
   category: string;
   species: string;
   breed: string;
@@ -13,224 +15,204 @@ type InventoryPet = {
   status: string;
   vaccinated: string;
   location: string;
-  image: string;
+  photo: string;
   description: string;
 };
 
-function getGoogleSheetsClient() {
+function getGoogleAuth() {
   const clientEmail = process.env.GOOGLE_CLIENT_EMAIL;
-  const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n");
-  const spreadsheetId = process.env.GOOGLE_SHEET_ID;
+  const privateKey = process.env.GOOGLE_PRIVATE_KEY;
 
-  if (!clientEmail || !privateKey || !spreadsheetId) {
-    throw new Error(
-      "Missing Google Sheets environment variables. Required: GOOGLE_CLIENT_EMAIL, GOOGLE_PRIVATE_KEY, GOOGLE_SHEET_ID."
+  if (!clientEmail) {
+    throw new Error("GOOGLE_CLIENT_EMAIL is missing.");
+  }
+
+  if (!privateKey) {
+    throw new Error("GOOGLE_PRIVATE_KEY is missing.");
+  }
+
+  const formattedPrivateKey = privateKey.replace(/\\n/g, "\n");
+
+  return new google.auth.JWT({
+    email: clientEmail,
+    key: formattedPrivateKey,
+    scopes: [
+      "https://www.googleapis.com/auth/spreadsheets",
+    ],
+  });
+}
+
+function getSheetId() {
+  const sheetId = process.env.GOOGLE_SHEET_ID;
+
+  if (!sheetId) {
+    throw new Error("GOOGLE_SHEET_ID is missing.");
+  }
+
+  return sheetId;
+}
+
+function clean(value: unknown): string {
+  return String(value ?? "").trim();
+}
+
+function normalizeInventory(rows: string[][]): InventoryRow[] {
+  if (!rows || rows.length === 0) {
+    return [];
+  }
+
+  const headers = rows[0].map((header) =>
+    clean(header).toLowerCase().replace(/\s+/g, "_")
+  );
+
+  const indexOf = (name: string) => headers.indexOf(name);
+
+  return rows.slice(1).map((row) => {
+    const value = (column: string): string => {
+      const index = indexOf(column);
+      return index >= 0 ? clean(row[index]) : "";
+    };
+
+    return {
+      pet_id: value("pet_id"),
+      category: value("category"),
+      species: value("species"),
+      breed: value("breed"),
+      name: value("name"),
+      gender: value("gender"),
+      age: value("age"),
+      price: value("price"),
+      status: value("status"),
+      vaccinated: value("vaccinated"),
+      location: value("location"),
+      photo: value("photo"),
+      description: value("description"),
+    };
+  });
+}
+
+/**
+ * GET /api/pets
+ *
+ * Reads the live Inventory worksheet.
+ */
+export async function GET() {
+  try {
+    const auth = getGoogleAuth();
+    const sheets = google.sheets({
+      version: "v4",
+      auth,
+    });
+
+    const spreadsheetId = getSheetId();
+
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: "Inventory!A:Z",
+    });
+
+    const rows = response.data.values ?? [];
+    const inventory = normalizeInventory(rows);
+
+    const availablePets = inventory
+      .filter((pet) => {
+        const status = pet.status.toLowerCase();
+
+        return (
+          pet.pet_id &&
+          status !== "sold" &&
+          status !== "unavailable"
+        );
+      })
+      .map((pet) => ({
+        id: pet.pet_id,
+        puppy_id: pet.pet_id,
+        category: pet.category || "Dogs",
+        species: pet.species || "Dog",
+        breed: pet.breed,
+        name: pet.name || pet.pet_id,
+        gender: pet.gender,
+        age: pet.age,
+        age_weeks: pet.age.replace(/[^0-9]/g, ""),
+        price: pet.price,
+        status: pet.status || "Available",
+        vaccinated: pet.vaccinated,
+        location: pet.location,
+        image: pet.photo || "",
+        photo: pet.photo || "",
+        description: pet.description,
+      }));
+
+    return NextResponse.json(availablePets, {
+      status: 200,
+      headers: {
+        "Cache-Control": "no-store",
+      },
+    });
+  } catch (error) {
+    console.error("PETORA GET inventory error:", error);
+
+    const details =
+      error instanceof Error
+        ? error.message
+        : String(error);
+
+    return NextResponse.json(
+      {
+        error: "Unable to load PETORA inventory.",
+        details,
+      },
+      { status: 500 }
     );
   }
-
-  const auth = new google.auth.JWT({
-    email: clientEmail,
-    key: privateKey,
-    scopes: ["https://www.googleapis.com/auth/spreadsheets"],
-  });
-
-  const sheets = google.sheets({
-    version: "v4",
-    auth,
-  });
-
-  return {
-    sheets,
-    spreadsheetId,
-  };
 }
 
-function normalizeHeader(value: unknown): string {
-  return String(value ?? "")
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, "_");
-}
-
-function getCell(
-  row: string[],
-  headers: string[],
-  ...possibleNames: string[]
-): string {
-  for (const name of possibleNames) {
-    const index = headers.indexOf(normalizeHeader(name));
-
-    if (index !== -1) {
-      return String(row[index] ?? "").trim();
-    }
-  }
-
-  return "";
-}
-
-/* =========================================================
-   GET /api/pets
-   Reads live PETORA inventory from Google Sheets
-   ========================================================= */
-
-export async function GET() {
-  const pets = [
-    {
-      id: "ST001",
-      puppy_id: "ST001",
-      category: "Dogs",
-      species: "Dog",
-      breed: "Shih Tzu",
-      name: "Lucky",
-      gender: "Male",
-      age: "8 weeks",
-      price: "19000",
-      status: "Available",
-      vaccinated: "Yes",
-      location: "Patna",
-      image: "/ST001.jpg",
-      description: "Shih Tzu puppy available in Patna.",
-    },
-    {
-      id: "ST002",
-      puppy_id: "ST002",
-      category: "Dogs",
-      species: "Dog",
-      breed: "Shih Tzu",
-      name: "Bella",
-      gender: "Female",
-      age: "9 weeks",
-      price: "20000",
-      status: "Available",
-      vaccinated: "Yes",
-      location: "Patna",
-      image: "/ST002.jpg",
-      description: "Shih Tzu puppy available in Patna.",
-    },
-    {
-      id: "GS001",
-      puppy_id: "GS001",
-      category: "Dogs",
-      species: "Dog",
-      breed: "German Shepherd",
-      name: "Rocky",
-      gender: "Male",
-      age: "10 weeks",
-      price: "25000",
-      status: "Available",
-      vaccinated: "Yes",
-      location: "Patna",
-      image: "/GS001.jpg",
-      description: "German Shepherd puppy available in Patna.",
-    },
-  ];
-
-  return NextResponse.json(pets, {
-    status: 200,
-    headers: {
-      "Cache-Control": "no-store",
-    },
-  });
-}
-
+/**
+ * POST /api/pets
+ *
+ * Adds an enquiry to the live Enquiries worksheet.
+ */
 export async function POST(request: Request) {
   try {
     const body = await request.json();
 
-    const name = String(body?.name ?? "").trim();
-    const phone = String(body?.phone ?? "").trim();
-    const petId = String(body?.pet_id ?? "").trim();
-    const message = String(body?.message ?? "").trim();
+    const name = clean(body?.name);
+    const phone = clean(body?.phone);
+    const petId = clean(body?.pet_id);
+    const breed = clean(body?.breed);
+    const message = clean(body?.message);
 
-    if (!name || !phone || !petId || !message) {
+    if (!name) {
       return NextResponse.json(
-        {
-          error:
-            "Please provide name, phone, pet ID and message.",
-        },
+        { error: "Name is required." },
         { status: 400 }
       );
     }
 
-    const { sheets, spreadsheetId } = getGoogleSheetsClient();
-
-    /* -----------------------------------------------------
-       Read Inventory so we can save the correct breed
-       ----------------------------------------------------- */
-
-    const inventoryResponse =
-      await sheets.spreadsheets.values.get({
-        spreadsheetId,
-        range: "Inventory!A:Z",
-      });
-
-    const inventoryRows =
-      inventoryResponse.data.values ?? [];
-
-    let breed = "";
-
-    if (inventoryRows.length > 1) {
-      const headers = inventoryRows[0].map(normalizeHeader);
-
-      for (const row of inventoryRows.slice(1)) {
-        const rowId = getCell(
-          row,
-          headers,
-          "pet_id",
-          "puppy_id",
-          "id"
-        );
-
-        if (rowId === petId) {
-          breed = getCell(row, headers, "breed");
-          break;
-        }
-      }
-    }
-
-    /* -----------------------------------------------------
-       Verify that the Enquiries sheet exists
-       ----------------------------------------------------- */
-
-    const spreadsheetInfo =
-      await sheets.spreadsheets.get({
-        spreadsheetId,
-        fields: "sheets.properties",
-      });
-
-    const sheetProperties =
-      spreadsheetInfo.data.sheets ?? [];
-
-    const enquiriesSheet = sheetProperties.find(
-      (sheet) =>
-        sheet.properties?.title === "Enquiries"
-    );
-
-    if (!enquiriesSheet) {
-      throw new Error(
-        'Google Sheet tab "Enquiries" was not found. Create a worksheet named exactly "Enquiries".'
+    if (!phone) {
+      return NextResponse.json(
+        { error: "Phone number is required." },
+        { status: 400 }
       );
     }
 
-    /* -----------------------------------------------------
-       Add enquiry
-       Columns:
-       date | name | phone | pet_id | breed | message | status
-       ----------------------------------------------------- */
+    if (!petId) {
+      return NextResponse.json(
+        { error: "Pet ID is required." },
+        { status: 400 }
+      );
+    }
 
-    const date = new Date().toISOString();
+    const auth = getGoogleAuth();
 
-    const values = [
-      [
-        date,
-        name,
-        phone,
-        petId,
-        breed,
-        message,
-        "New",
-      ],
-    ];
+    const sheets = google.sheets({
+      version: "v4",
+      auth,
+    });
+
+    const spreadsheetId = getSheetId();
+
+    const now = new Date().toISOString();
 
     await sheets.spreadsheets.values.append({
       spreadsheetId,
@@ -238,28 +220,38 @@ export async function POST(request: Request) {
       valueInputOption: "USER_ENTERED",
       insertDataOption: "INSERT_ROWS",
       requestBody: {
-        values,
+        values: [
+          [
+            now,
+            name,
+            phone,
+            petId,
+            breed,
+            message,
+            "New",
+          ],
+        ],
       },
     });
 
-    return NextResponse.json({
-      success: true,
-      message:
-        "Your PETORA enquiry has been submitted successfully.",
-    });
-  } catch (error) {
-    console.error(
-      "PETORA enquiry submission error:",
-      error
+    return NextResponse.json(
+      {
+        success: true,
+        message: "Your PETORA enquiry has been submitted successfully.",
+      },
+      { status: 200 }
     );
+  } catch (error) {
+    console.error("PETORA POST enquiry error:", error);
 
     const details =
-      error instanceof Error ? error.message : String(error);
+      error instanceof Error
+        ? error.message
+        : String(error);
 
     return NextResponse.json(
       {
-        error:
-          "Unable to submit your enquiry right now.",
+        error: "Unable to submit your enquiry right now.",
         details,
       },
       { status: 500 }
