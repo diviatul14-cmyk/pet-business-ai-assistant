@@ -74,146 +74,64 @@ function getCell(
    ========================================================= */
 
 export async function GET() {
-  try {
-    const { sheets, spreadsheetId } = getGoogleSheetsClient();
+  const pets = [
+    {
+      id: "ST001",
+      puppy_id: "ST001",
+      category: "Dogs",
+      species: "Dog",
+      breed: "Shih Tzu",
+      name: "Lucky",
+      gender: "Male",
+      age: "8 weeks",
+      price: "19000",
+      status: "Available",
+      vaccinated: "Yes",
+      location: "Patna",
+      image: "/ST001.jpg",
+      description: "Shih Tzu puppy available in Patna.",
+    },
+    {
+      id: "ST002",
+      puppy_id: "ST002",
+      category: "Dogs",
+      species: "Dog",
+      breed: "Shih Tzu",
+      name: "Bella",
+      gender: "Female",
+      age: "9 weeks",
+      price: "20000",
+      status: "Available",
+      vaccinated: "Yes",
+      location: "Patna",
+      image: "/ST002.jpg",
+      description: "Shih Tzu puppy available in Patna.",
+    },
+    {
+      id: "GS001",
+      puppy_id: "GS001",
+      category: "Dogs",
+      species: "Dog",
+      breed: "German Shepherd",
+      name: "Rocky",
+      gender: "Male",
+      age: "10 weeks",
+      price: "25000",
+      status: "Available",
+      vaccinated: "Yes",
+      location: "Patna",
+      image: "/GS001.jpg",
+      description: "German Shepherd puppy available in Patna.",
+    },
+  ];
 
-    const response = await sheets.spreadsheets.values.get({
-      spreadsheetId,
-      range: "Inventory!A:Z",
-    });
-
-    const rows = response.data.values ?? [];
-
-    if (rows.length === 0) {
-      return NextResponse.json([]);
-    }
-
-    const headers = rows[0].map(normalizeHeader);
-
-    const pets: InventoryPet[] = rows
-      .slice(1)
-      .map((row) => {
-        const id = getCell(row, headers, "pet_id", "puppy_id", "id");
-
-        const category = getCell(
-          row,
-          headers,
-          "category",
-          "pet_category"
-        );
-
-        const species = getCell(
-          row,
-          headers,
-          "species",
-          "animal"
-        );
-
-        const breed = getCell(row, headers, "breed");
-
-        const name = getCell(
-          row,
-          headers,
-          "name",
-          "pet_name"
-        );
-
-        const gender = getCell(
-          row,
-          headers,
-          "gender",
-          "sex"
-        );
-
-        const age = getCell(
-          row,
-          headers,
-          "age",
-          "age_weeks"
-        );
-
-        const price = getCell(
-          row,
-          headers,
-          "price",
-          "amount"
-        );
-
-        const status = getCell(
-          row,
-          headers,
-          "status",
-          "availability"
-        );
-
-        const vaccinated = getCell(
-          row,
-          headers,
-          "vaccinated",
-          "vaccination"
-        );
-
-        const location = getCell(
-          row,
-          headers,
-          "location",
-          "city"
-        );
-
-        const image = getCell(
-          row,
-          headers,
-          "photo",
-          "image",
-          "photo_url"
-        );
-
-        const description = getCell(
-          row,
-          headers,
-          "description",
-          "details"
-        );
-
-        return {
-          id,
-          category,
-          species,
-          breed,
-          name,
-          gender,
-          age,
-          price,
-          status,
-          vaccinated,
-          location,
-          image,
-          description,
-        };
-      })
-      .filter((pet) => pet.id);
-
-    return NextResponse.json(pets);
-  } catch (error) {
-    console.error("PETORA Google Sheets GET error:", error);
-
-    const details =
-      error instanceof Error ? error.message : String(error);
-
-    return NextResponse.json(
-      {
-        error: "Unable to load PETORA inventory.",
-        details,
-      },
-      { status: 500 }
-    );
-  }
+  return NextResponse.json(pets, {
+    status: 200,
+    headers: {
+      "Cache-Control": "no-store",
+    },
+  });
 }
-
-/* =========================================================
-   POST /api/pets
-   Saves customer enquiry to Google Sheets
-   ========================================================= */
 
 export async function POST(request: Request) {
   try {
