@@ -1525,3 +1525,2506 @@ section {
     grid-column: auto !important;
   }
 }
+
+/* PETORA: Animals + Shop side-by-side */
+.home-two-column-final {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  gap: 28px;
+  align-items: start;
+  width: 100%;
+}
+
+.home-two-column-final > * {
+  min-width: 0;
+}
+
+.home-two-column-final .category-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 900px) {
+  .home-two-column-final {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .home-two-column-final .category-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* PETORA SHOP BEAUTIFUL TWO-COLUMN DESIGN */
+
+.home-two-column-final {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(360px, 0.85fr);
+  gap: 32px;
+  align-items: stretch;
+  width: 100%;
+  margin-top: 18px;
+}
+
+.home-two-column-final > section {
+  min-width: 0;
+  margin: 0;
+  padding: 30px;
+  border-radius: 30px;
+  background: rgba(255, 255, 255, 0.84);
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  box-shadow: 0 20px 55px rgba(17, 54, 42, 0.12);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+/* LEFT — ANIMAL CATEGORIES */
+#categories .section-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+#categories .section-heading > div {
+  min-width: 0;
+}
+
+#categories .section-heading > p {
+  max-width: 260px;
+  margin: 0;
+}
+
+#categories .category-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+#categories .category-card {
+  min-height: 145px;
+  border-radius: 20px;
+  overflow: hidden;
+  transform: translateZ(0);
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease,
+    border-color 0.25s ease;
+}
+
+#categories .category-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 32px rgba(17, 54, 42, 0.16);
+}
+
+/* RIGHT — PETORA SHOP */
+#shop {
+  display: flex;
+  flex-direction: column;
+}
+
+#shop .section-heading {
+  display: block;
+  margin-bottom: 24px;
+}
+
+#shop .section-heading > p {
+  max-width: 480px;
+  margin: 10px 0 0;
+}
+
+#shop .category-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+  flex: 1;
+}
+
+#shop .category-card {
+  position: relative;
+  min-height: 120px;
+  padding: 22px 24px;
+  text-align: left;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background:
+    linear-gradient(135deg, #0b5744 0%, #083e32 100%);
+  color: #ffffff;
+  box-shadow: 0 12px 28px rgba(8, 62, 50, 0.18);
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease,
+    background 0.25s ease;
+}
+
+#shop .category-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 36px rgba(8, 62, 50, 0.24);
+  background:
+    linear-gradient(135deg, #0d634e 0%, #094a3b 100%);
+}
+
+#shop .category-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  margin-bottom: 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.12);
+  font-size: 22px;
+}
+
+#shop .category-card h3 {
+  margin: 0 0 6px;
+  color: #ffffff;
+  font-size: 22px;
+  line-height: 1.15;
+}
+
+#shop .category-card p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 14px;
+  line-height: 1.55;
+  max-width: 460px;
+}
+
+#shop .category-link {
+  display: inline-block;
+  margin-top: 14px;
+  color: #f0c76a;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+@media (max-width: 1050px) {
+  .home-two-column-final {
+    grid-template-columns: 1fr;
+  }
+
+  #shop .category-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .home-two-column-final {
+    grid-template-columns: 1fr;
+    gap: 22px;
+  }
+
+  .home-two-column-final > section {
+    padding: 22px;
+    border-radius: 24px;
+  }
+
+  #categories .section-heading {
+    display: block;
+  }
+
+  #categories .section-heading > p {
+    max-width: 100%;
+    margin-top: 10px;
+  }
+
+  #categories .category-grid,
+  #shop .category-grid {
+    grid-template-columns: 1fr;
+  }
+
+  #shop .category-card {
+    min-height: 115px;
+  }
+}
+
+/* PETORA REAL SELLING SECTION THEME */
+
+.home-two-column-final {
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(360px, 0.92fr);
+  gap: 24px;
+  align-items: stretch;
+  width: 100%;
+  margin-top: 24px;
+}
+
+.home-two-column-final > section {
+  min-width: 0;
+  margin: 0;
+  padding: 30px;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(13, 82, 65, 0.08);
+  box-shadow:
+    0 18px 50px rgba(13, 82, 65, 0.10),
+    0 3px 12px rgba(13, 82, 65, 0.05);
+}
+
+/* =========================
+   SHOP BY PET
+   ========================= */
+
+#categories .section-heading {
+  margin-bottom: 24px;
+}
+
+#categories .section-heading h2 {
+  margin-bottom: 8px;
+}
+
+#categories .section-heading > p {
+  max-width: 360px;
+}
+
+#categories .category-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+#categories .category-card {
+  position: relative;
+  min-height: 155px;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 18px;
+  background: #0b4939;
+  box-shadow: 0 10px 26px rgba(7, 61, 48, 0.14);
+  cursor: pointer;
+  text-align: left;
+  isolation: isolate;
+  transition:
+    transform 0.22s ease,
+    box-shadow 0.22s ease;
+}
+
+#categories .category-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 34px rgba(7, 61, 48, 0.20);
+}
+
+#categories .category-card img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  z-index: -2;
+  transition: transform 0.35s ease;
+}
+
+#categories .category-card:hover img {
+  transform: scale(1.045);
+}
+
+#categories .category-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(4, 28, 22, 0.02) 18%,
+      rgba(4, 28, 22, 0.20) 48%,
+      rgba(4, 28, 22, 0.78) 100%
+    );
+  z-index: -1;
+}
+
+#categories .category-overlay {
+  position: absolute;
+  inset: auto 0 0 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 20px;
+  color: #ffffff;
+}
+
+#categories .category-overlay h3 {
+  margin: 0 0 4px;
+  color: #ffffff;
+  font-size: 21px;
+  line-height: 1.1;
+}
+
+#categories .category-overlay p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+#categories .category-overlay > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  color: #0b4939;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+/* =========================
+   PETORA STORE
+   ========================= */
+
+#shop {
+  display: flex;
+  flex-direction: column;
+}
+
+#shop .section-heading {
+  margin-bottom: 22px;
+}
+
+#shop .section-heading h2 {
+  margin-bottom: 8px;
+}
+
+#shop .section-heading > p {
+  max-width: 430px;
+  margin: 0;
+}
+
+#shop .category-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  flex: 1;
+}
+
+#shop .category-card {
+  position: relative;
+  display: block;
+  width: 100%;
+  min-height: 118px;
+  padding: 20px 22px 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(11, 73, 57, 0.10);
+  background:
+    linear-gradient(135deg, #0b5945 0%, #073f32 100%);
+  color: #ffffff;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(7, 61, 48, 0.13);
+  overflow: hidden;
+  transition:
+    transform 0.22s ease,
+    box-shadow 0.22s ease;
+}
+
+#shop .category-card::after {
+  content: "";
+  position: absolute;
+  width: 150px;
+  height: 150px;
+  right: -55px;
+  bottom: -70px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.055);
+}
+
+#shop .category-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 16px 30px rgba(7, 61, 48, 0.19);
+}
+
+#shop .category-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  margin-bottom: 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 21px;
+}
+
+#shop .category-card h3 {
+  margin: 0 0 5px;
+  color: #ffffff;
+  font-size: 21px;
+  line-height: 1.15;
+}
+
+#shop .category-card p {
+  margin: 0;
+  max-width: 500px;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+#shop .category-link {
+  display: inline-block;
+  margin-top: 10px;
+  color: #f2c86b;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+/* Small commerce labels */
+#shop .category-card::before {
+  content: "SHOP";
+  position: absolute;
+  top: 18px;
+  right: 19px;
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+/* Desktop balance */
+@media (min-width: 901px) {
+  #categories {
+    min-height: 100%;
+  }
+
+  #shop {
+    min-height: 100%;
+  }
+}
+
+/* Tablet */
+@media (max-width: 1050px) {
+  .home-two-column-final {
+    grid-template-columns: 1fr;
+  }
+
+  #shop .category-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* Mobile */
+@media (max-width: 760px) {
+  .home-two-column-final {
+    grid-template-columns: 1fr;
+    gap: 20px;
+    margin-top: 18px;
+  }
+
+  .home-two-column-final > section {
+    padding: 20px;
+    border-radius: 24px;
+  }
+
+  #categories .category-grid {
+    grid-template-columns: 1fr;
+  }
+
+  #shop .category-grid {
+    grid-template-columns: 1fr;
+  }
+
+  #shop .category-card {
+    min-height: 118px;
+  }
+}
+
+/* PETORA FINAL SELLING DESIGN */
+
+/* =========================
+   PETORA COMPACT 3D SELLING DESIGN
+   ========================= */
+
+.home-two-column-final {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+  gap: 24px !important;
+  width: 100% !important;
+  align-items: stretch !important;
+}
+
+.sell-panel {
+  position: relative !important;
+  display: flex !important;
+  flex-direction: column !important;
+  min-width: 0 !important;
+  min-height: 500px !important;
+  padding: 28px !important;
+  border-radius: 28px !important;
+  background: rgba(255, 255, 255, 0.96) !important;
+  border: 1px solid rgba(10, 76, 59, 0.08) !important;
+  box-shadow:
+    0 18px 48px rgba(10, 76, 59, 0.10),
+    0 2px 8px rgba(10, 76, 59, 0.04) !important;
+  overflow: hidden !important;
+}
+
+.sell-panel-head {
+  position: relative !important;
+  z-index: 3 !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: flex-end !important;
+  gap: 20px !important;
+  margin-bottom: 20px !important;
+}
+
+.sell-panel-head h2 {
+  margin: 4px 0 0 !important;
+  color: #07513f !important;
+  font-size: clamp(32px, 2.7vw, 44px) !important;
+  line-height: 0.98 !important;
+  letter-spacing: -0.045em !important;
+}
+
+.sell-eyebrow {
+  margin: 0 !important;
+  color: #b18324 !important;
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.18em !important;
+  text-transform: uppercase !important;
+}
+
+.sell-panel-copy {
+  max-width: 245px !important;
+  margin: 0 !important;
+  color: #718078 !important;
+  font-size: 12px !important;
+  line-height: 1.5 !important;
+}
+
+/* ---------- LEFT: PET CARDS ---------- */
+
+.sell-pet-list {
+  position: relative !important;
+  z-index: 3 !important;
+  display: grid !important;
+  grid-template-rows: repeat(3, 112px) !important;
+  gap: 12px !important;
+  flex: 0 0 auto !important;
+}
+
+.sell-pet-card {
+  position: relative !important;
+  display: flex !important;
+  align-items: stretch !important;
+  width: 100% !important;
+  height: 112px !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  border: 0 !important;
+  border-radius: 18px !important;
+  background: #0b4939 !important;
+  color: #ffffff !important;
+  text-align: left !important;
+  cursor: pointer !important;
+  box-shadow:
+    0 10px 20px rgba(7, 61, 48, 0.14),
+    0 2px 4px rgba(7, 61, 48, 0.08) !important;
+  transform: perspective(900px) rotateX(0deg) rotateY(0deg) !important;
+  transition:
+    transform 0.28s ease,
+    box-shadow 0.28s ease !important;
+}
+
+.sell-pet-card:hover {
+  transform:
+    perspective(900px)
+    rotateX(1deg)
+    rotateY(-1.5deg)
+    translateY(-4px) !important;
+  box-shadow:
+    0 18px 28px rgba(7, 61, 48, 0.18),
+    0 6px 10px rgba(7, 61, 48, 0.10) !important;
+}
+
+.sell-pet-media,
+.sell-fish-art {
+  position: relative !important;
+  width: 42% !important;
+  min-width: 150px !important;
+  height: 100% !important;
+  overflow: hidden !important;
+  transform: translateZ(10px) !important;
+}
+
+.sell-pet-media img {
+  width: 100% !important;
+  height: 100% !important;
+  display: block !important;
+  object-fit: cover !important;
+  object-position: center !important;
+  transition: transform 0.35s ease, filter 0.35s ease !important;
+}
+
+.sell-pet-card:hover .sell-pet-media img {
+  transform: scale(1.07) !important;
+  filter: saturate(1.06) contrast(1.03) !important;
+}
+
+.sell-pet-media::before {
+  content: "" !important;
+  position: absolute !important;
+  z-index: 2 !important;
+  inset: 8px 8px 8px auto !important;
+  width: 28px !important;
+  border-radius: 12px !important;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255,255,255,0.13)
+  ) !important;
+  opacity: 0.6 !important;
+  pointer-events: none !important;
+}
+
+.sell-pet-media::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 !important;
+  background: linear-gradient(
+    90deg,
+    rgba(4, 33, 26, 0.02),
+    rgba(4, 33, 26, 0.38)
+  ) !important;
+  pointer-events: none !important;
+}
+
+.sell-card-content {
+  position: relative !important;
+  display: flex !important;
+  align-items: flex-end !important;
+  justify-content: space-between !important;
+  flex: 1 !important;
+  gap: 12px !important;
+  padding: 17px 18px !important;
+  background:
+    linear-gradient(
+      135deg,
+      #0b5b47 0%,
+      #073f32 100%
+    ) !important;
+  transform: translateZ(6px) !important;
+}
+
+.sell-card-kicker {
+  display: block !important;
+  margin-bottom: 5px !important;
+  color: #efc970 !important;
+  font-size: 8px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.15em !important;
+}
+
+.sell-card-content h3 {
+  margin: 0 0 4px !important;
+  color: #ffffff !important;
+  font-size: 22px !important;
+  line-height: 1.05 !important;
+}
+
+.sell-card-content p {
+  margin: 0 !important;
+  color: rgba(255, 255, 255, 0.76) !important;
+  font-size: 11px !important;
+  line-height: 1.35 !important;
+}
+
+.sell-arrow {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 34px !important;
+  height: 34px !important;
+  flex: 0 0 34px !important;
+  border-radius: 50% !important;
+  background: #ffffff !important;
+  color: #07513f !important;
+  font-size: 17px !important;
+  font-weight: 800 !important;
+  box-shadow: 0 5px 12px rgba(0, 0, 0, 0.12) !important;
+}
+
+/* Fish card: proper visual treatment without broken image */
+.sell-fish-card {
+  background:
+    radial-gradient(
+      circle at 25% 30%,
+      rgba(76, 220, 196, 0.32),
+      transparent 25%
+    ),
+    linear-gradient(
+      135deg,
+      #083d50 0%,
+      #062b38 100%
+    ) !important;
+}
+
+.sell-fish-art {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background:
+    radial-gradient(
+      circle at 35% 30%,
+      rgba(96, 236, 207, 0.30),
+      transparent 23%
+    ),
+    radial-gradient(
+      circle at 70% 70%,
+      rgba(31, 139, 177, 0.34),
+      transparent 32%
+    ),
+    linear-gradient(
+      135deg,
+      #082d3a,
+      #0a5965
+    ) !important;
+}
+
+.sell-fish-art::after {
+  content: "" !important;
+  position: absolute !important;
+  width: 170px !important;
+  height: 170px !important;
+  border-radius: 50% !important;
+  border: 1px solid rgba(255,255,255,0.10) !important;
+  box-shadow:
+    0 0 0 18px rgba(255,255,255,0.025),
+    0 0 0 38px rgba(255,255,255,0.018) !important;
+}
+
+.fish-shape {
+  position: relative !important;
+  z-index: 3 !important;
+  font-size: 58px !important;
+  filter:
+    drop-shadow(0 10px 12px rgba(0,0,0,0.28))
+    drop-shadow(10px 0 8px rgba(61,213,186,0.16)) !important;
+  transform: translateZ(24px) rotate(-4deg) !important;
+}
+
+/* ---------- RIGHT: STORE CARDS ---------- */
+
+.sell-store-list {
+  position: relative !important;
+  z-index: 3 !important;
+  display: grid !important;
+  grid-template-rows: repeat(3, 112px) !important;
+  gap: 12px !important;
+  flex: 0 0 auto !important;
+}
+
+.sell-store-card {
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 16px !important;
+  width: 100% !important;
+  height: 112px !important;
+  padding: 17px 19px !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  border-radius: 18px !important;
+  background:
+    linear-gradient(
+      135deg,
+      #0b5b47 0%,
+      #073d31 100%
+    ) !important;
+  color: #ffffff !important;
+  text-align: left !important;
+  cursor: pointer !important;
+  box-shadow:
+    0 10px 20px rgba(7, 61, 48, 0.13),
+    0 2px 4px rgba(7, 61, 48, 0.08) !important;
+  overflow: hidden !important;
+  transform: perspective(900px) rotateX(0deg) !important;
+  transition:
+    transform 0.28s ease,
+    box-shadow 0.28s ease !important;
+}
+
+.sell-store-card:hover {
+  transform:
+    perspective(900px)
+    rotateX(1deg)
+    rotateY(1deg)
+    translateY(-4px) !important;
+  box-shadow:
+    0 18px 30px rgba(7,61,48,0.19) !important;
+}
+
+.sell-store-card::after {
+  content: "" !important;
+  position: absolute !important;
+  width: 150px !important;
+  height: 150px !important;
+  right: -80px !important;
+  bottom: -90px !important;
+  border-radius: 50% !important;
+  background: rgba(255,255,255,0.055) !important;
+  pointer-events: none !important;
+}
+
+.sell-store-icon {
+  position: relative !important;
+  z-index: 3 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 52px !important;
+  height: 52px !important;
+  flex: 0 0 52px !important;
+  border-radius: 15px !important;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255,255,255,0.17),
+      rgba(255,255,255,0.07)
+    ) !important;
+  border: 1px solid rgba(255,255,255,0.10) !important;
+  box-shadow:
+    inset 0 1px rgba(255,255,255,0.14),
+    0 8px 16px rgba(0,0,0,0.10) !important;
+  font-size: 25px !important;
+  transform: translateZ(18px) !important;
+}
+
+.sell-store-main {
+  position: relative !important;
+  z-index: 3 !important;
+  min-width: 0 !important;
+  flex: 1 !important;
+}
+
+.sell-store-top {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+}
+
+.sell-store-label {
+  color: #efc970 !important;
+  font-size: 8px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.15em !important;
+}
+
+.sell-arrow-light {
+  width: 31px !important;
+  height: 31px !important;
+  flex-basis: 31px !important;
+}
+
+.sell-store-main h3 {
+  margin: 6px 0 3px !important;
+  color: #ffffff !important;
+  font-size: 21px !important;
+  line-height: 1.08 !important;
+}
+
+.sell-store-main p {
+  margin: 0 !important;
+  color: rgba(255,255,255,0.74) !important;
+  font-size: 11px !important;
+  line-height: 1.35 !important;
+}
+
+.sell-store-action {
+  display: inline-block !important;
+  margin-top: 7px !important;
+  color: #efc970 !important;
+  font-size: 10px !important;
+  font-weight: 800 !important;
+}
+
+.sell-panel-footer,
+.sell-store-note {
+  position: relative !important;
+  z-index: 3 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+  margin-top: 15px !important;
+  color: #7c8982 !important;
+  font-size: 9px !important;
+}
+
+.sell-panel-footer span {
+  padding: 6px 9px !important;
+  border-radius: 999px !important;
+  background: #f1f5f2 !important;
+  color: #617069 !important;
+  font-weight: 700 !important;
+}
+
+.sell-store-note {
+  justify-content: space-between !important;
+  padding-top: 11px !important;
+  border-top: 1px solid rgba(7,61,48,0.08) !important;
+}
+
+.sell-store-note strong {
+  color: #07513f !important;
+  font-size: 10px !important;
+}
+
+/* ---------- RESPONSIVE ---------- */
+
+@media (max-width: 1050px) {
+  .home-two-column-final {
+    grid-template-columns: 1fr !important;
+  }
+
+  .sell-panel {
+    min-height: auto !important;
+  }
+}
+
+@media (max-width: 700px) {
+  .sell-panel {
+    min-height: auto !important;
+    padding: 20px !important;
+    border-radius: 23px !important;
+  }
+
+  .sell-panel-head {
+    display: block !important;
+  }
+
+  .sell-panel-copy {
+    max-width: none !important;
+    margin-top: 10px !important;
+  }
+
+  .sell-pet-list,
+  .sell-store-list {
+    grid-template-rows: repeat(3, 108px) !important;
+  }
+
+  .sell-pet-card,
+  .sell-store-card {
+    height: 108px !important;
+  }
+
+  .sell-pet-media,
+  .sell-fish-art {
+    min-width: 110px !important;
+    width: 37% !important;
+  }
+
+  .sell-card-content {
+    padding: 15px !important;
+  }
+
+  .sell-card-content h3 {
+    font-size: 19px !important;
+  }
+
+  .sell-store-card {
+    gap: 12px !important;
+    padding: 14px !important;
+  }
+
+  .sell-store-icon {
+    width: 46px !important;
+    height: 46px !important;
+    flex-basis: 46px !important;
+  }
+
+  .sell-store-main h3 {
+    font-size: 18px !important;
+  }
+
+  .sell-store-note {
+    display: block !important;
+  }
+
+  .sell-store-note span {
+    display: block !important;
+    margin-top: 4px !important;
+  }
+}
+
+/* END PETORA COMPACT 3D SELLING DESIGN */
+
+/* PETORA REAL PET IMAGE FIX */
+
+.sell-pet-media img {
+  object-fit: cover !important;
+  object-position: center !important;
+}
+
+.sell-fish-art {
+  position: relative !important;
+  width: 42% !important;
+  min-width: 150px !important;
+  height: 100% !important;
+  overflow: hidden !important;
+  background: #082d3a !important;
+}
+
+.sell-fish-art img {
+  width: 100% !important;
+  height: 100% !important;
+  display: block !important;
+  object-fit: cover !important;
+  object-position: center !important;
+  filter: saturate(1.08) contrast(1.05) !important;
+  transition: transform 0.35s ease, filter 0.35s ease !important;
+}
+
+.sell-fish-art::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 2 !important;
+  background: linear-gradient(
+    90deg,
+    rgba(3, 22, 28, 0.04),
+    rgba(3, 22, 28, 0.34)
+  ) !important;
+  pointer-events: none !important;
+}
+
+.sell-pet-card:hover .sell-fish-art img {
+  transform: scale(1.06) !important;
+  filter: saturate(1.12) contrast(1.07) !important;
+}
+
+@media (max-width: 700px) {
+  .sell-fish-art {
+    min-width: 110px !important;
+    width: 37% !important;
+  }
+}
+
+/* PETORA Dogo Argentino image refinement */
+.sell-pet-card .sell-pet-media img[alt="Dog"] {
+  object-position: 52% center !important;
+  object-fit: cover !important;
+}
+
+/* PETORA REAL GOOGLE SHEETS PRODUCT STORE */
+
+.petora-real-store {
+  min-height: 500px !important;
+}
+
+.petora-product-list {
+  position: relative;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  flex: 1;
+}
+
+.petora-product-card {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  min-height: 112px;
+  overflow: hidden;
+  border: 1px solid rgba(7, 61, 48, 0.10);
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 8px 20px rgba(7, 61, 48, 0.08);
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+
+.petora-product-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 28px rgba(7, 61, 48, 0.14);
+}
+
+.petora-product-image {
+  position: relative;
+  min-height: 112px;
+  overflow: hidden;
+  background: linear-gradient(145deg, #edf4f0, #d9e8e1);
+}
+
+.petora-product-image img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.petora-product-placeholder {
+  width: 100%;
+  height: 100%;
+  min-height: 112px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(circle at 30% 30%, rgba(239, 201, 112, 0.28), transparent 30%),
+    linear-gradient(145deg, #edf5f0, #d8e9e1);
+}
+
+.petora-product-placeholder span {
+  width: 54px;
+  height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 8px 18px rgba(7, 61, 48, 0.10);
+  font-size: 27px;
+}
+
+.petora-product-info {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 13px 15px;
+}
+
+.petora-product-category {
+  color: #b18324;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.petora-product-info h3 {
+  margin: 5px 0 3px;
+  color: #07513f;
+  font-size: 18px;
+  line-height: 1.1;
+}
+
+.petora-product-info p {
+  margin: 0;
+  color: #718078;
+  font-size: 10px;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.petora-product-bottom {
+  margin-top: auto;
+  padding-top: 7px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.petora-product-prices {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.petora-product-prices strong {
+  color: #07513f;
+  font-size: 17px;
+  line-height: 1;
+}
+
+.petora-product-prices span {
+  color: #9aa49e;
+  font-size: 9px;
+  text-decoration: line-through;
+}
+
+.petora-stock {
+  color: #257354;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.petora-stock-low {
+  color: #aa6b29;
+}
+
+.petora-store-state {
+  position: relative;
+  z-index: 3;
+  min-height: 250px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #718078;
+  padding: 25px;
+}
+
+.petora-store-state strong {
+  color: #07513f;
+  font-size: 18px;
+}
+
+.petora-store-state p {
+  max-width: 330px;
+  margin: 7px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.petora-store-spinner {
+  width: 30px;
+  height: 30px;
+  margin-bottom: 12px;
+  border: 3px solid rgba(7, 81, 63, 0.12);
+  border-top-color: #07513f;
+  border-radius: 50%;
+  animation: petoraSpin 0.8s linear infinite;
+}
+
+@keyframes petoraSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.petora-store-error strong {
+  color: #9a492b;
+}
+
+.petora-store-footer {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+  padding-top: 11px;
+  border-top: 1px solid rgba(7, 61, 48, 0.08);
+  color: #7c8982;
+  font-size: 9px;
+}
+
+.petora-store-footer span {
+  padding: 6px 9px;
+  border-radius: 999px;
+  background: #f1f5f2;
+}
+
+.petora-store-footer strong {
+  color: #07513f;
+}
+
+@media (max-width: 700px) {
+  .petora-product-card {
+    grid-template-columns: 95px minmax(0, 1fr);
+    min-height: 105px;
+  }
+
+  .petora-product-image,
+  .petora-product-placeholder {
+    min-height: 105px;
+  }
+
+  .petora-product-info {
+    padding: 12px;
+  }
+}
+
+/* PETORA REAL COMMERCE STOREFRONT */
+
+.home-two-column-final {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+  gap: 22px !important;
+  align-items: stretch !important;
+}
+
+.petora-commerce-panel {
+  position: relative !important;
+  display: flex !important;
+  flex-direction: column !important;
+  min-width: 0 !important;
+  padding: 27px !important;
+  border-radius: 26px !important;
+  background: rgba(255,255,255,0.97) !important;
+  border: 1px solid rgba(7,81,63,0.08) !important;
+  box-shadow:
+    0 15px 38px rgba(7,61,48,0.09),
+    0 2px 8px rgba(7,61,48,0.04) !important;
+  overflow: hidden !important;
+}
+
+.petora-commerce-panel::after {
+  content: "" !important;
+  position: absolute !important;
+  width: 180px !important;
+  height: 180px !important;
+  right: -100px !important;
+  top: -100px !important;
+  border-radius: 50% !important;
+  background: rgba(204,171,89,0.055) !important;
+  pointer-events: none !important;
+}
+
+.petora-commerce-header {
+  position: relative !important;
+  z-index: 2 !important;
+  display: flex !important;
+  align-items: flex-end !important;
+  justify-content: space-between !important;
+  gap: 20px !important;
+  margin-bottom: 19px !important;
+}
+
+.petora-commerce-eyebrow {
+  display: block !important;
+  margin-bottom: 5px !important;
+  color: #b18324 !important;
+  font-size: 9px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.17em !important;
+  text-transform: uppercase !important;
+}
+
+.petora-commerce-header h2 {
+  max-width: 440px !important;
+  margin: 0 !important;
+  color: #07513f !important;
+  font-size: clamp(31px, 2.55vw, 43px) !important;
+  line-height: 0.98 !important;
+  letter-spacing: -0.045em !important;
+}
+
+.petora-commerce-header > p {
+  max-width: 220px !important;
+  margin: 0 !important;
+  color: #748079 !important;
+  font-size: 11px !important;
+  line-height: 1.5 !important;
+}
+
+/* ==============================
+   PET CATEGORY COMMERCE CARDS
+   ============================== */
+
+.petora-pet-commerce-grid {
+  position: relative !important;
+  z-index: 2 !important;
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 10px !important;
+}
+
+.petora-pet-commerce-card {
+  display: grid !important;
+  grid-template-columns: 38% minmax(0, 1fr) !important;
+  width: 100% !important;
+  min-height: 106px !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  border: 0 !important;
+  border-radius: 17px !important;
+  background: #083f31 !important;
+  text-align: left !important;
+  cursor: pointer !important;
+  box-shadow: 0 7px 17px rgba(7,61,48,0.11) !important;
+  transition: transform .22s ease, box-shadow .22s ease !important;
+}
+
+.petora-pet-commerce-card:hover {
+  transform: translateY(-3px) !important;
+  box-shadow: 0 13px 25px rgba(7,61,48,0.17) !important;
+}
+
+.petora-pet-image {
+  position: relative !important;
+  min-height: 106px !important;
+  overflow: hidden !important;
+  background: #0d4436 !important;
+}
+
+.petora-pet-image img {
+  width: 100% !important;
+  height: 100% !important;
+  display: block !important;
+  object-fit: cover !important;
+  object-position: center !important;
+  transition: transform .3s ease !important;
+}
+
+.petora-pet-commerce-card:hover .petora-pet-image img {
+  transform: scale(1.06) !important;
+}
+
+.petora-pet-image::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 !important;
+  background: linear-gradient(
+    90deg,
+    rgba(4,31,25,0.00),
+    rgba(4,31,25,0.36)
+  ) !important;
+}
+
+.petora-pet-image span {
+  position: absolute !important;
+  left: 10px !important;
+  bottom: 9px !important;
+  z-index: 2 !important;
+  padding: 5px 7px !important;
+  border-radius: 999px !important;
+  background: rgba(255,255,255,0.90) !important;
+  color: #07513f !important;
+  font-size: 7px !important;
+  font-weight: 800 !important;
+  letter-spacing: .08em !important;
+}
+
+.petora-pet-card-content {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  padding: 14px 15px !important;
+  color: #fff !important;
+  background: linear-gradient(135deg,#0b5b47,#073d31) !important;
+}
+
+.petora-pet-card-content small {
+  display: block !important;
+  margin-bottom: 4px !important;
+  color: #efc970 !important;
+  font-size: 7px !important;
+  font-weight: 800 !important;
+  letter-spacing: .14em !important;
+}
+
+.petora-pet-card-content h3 {
+  margin: 0 0 3px !important;
+  color: #fff !important;
+  font-size: 20px !important;
+  line-height: 1 !important;
+}
+
+.petora-pet-card-content p {
+  max-width: 250px !important;
+  margin: 0 !important;
+  color: rgba(255,255,255,0.72) !important;
+  font-size: 9px !important;
+  line-height: 1.35 !important;
+}
+
+.petora-pet-arrow {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 31px !important;
+  height: 31px !important;
+  flex: 0 0 31px !important;
+  border-radius: 50% !important;
+  background: #fff !important;
+  color: #07513f !important;
+  font-size: 15px !important;
+  font-weight: 800 !important;
+}
+
+/* ==============================
+   REAL PRODUCT STORE
+   ============================== */
+
+.petora-product-grid {
+  position: relative !important;
+  z-index: 2 !important;
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0,1fr)) !important;
+  gap: 10px !important;
+  flex: 1 !important;
+}
+
+.petora-real-product-card {
+  min-width: 0 !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(7,61,48,0.09) !important;
+  border-radius: 17px !important;
+  background: #fff !important;
+  box-shadow: 0 7px 18px rgba(7,61,48,0.08) !important;
+  transition: transform .22s ease, box-shadow .22s ease !important;
+}
+
+.petora-real-product-card:hover {
+  transform: translateY(-3px) !important;
+  box-shadow: 0 13px 24px rgba(7,61,48,0.14) !important;
+}
+
+.petora-real-product-visual {
+  position: relative !important;
+  height: 112px !important;
+  overflow: hidden !important;
+  background:
+    radial-gradient(circle at 30% 25%, rgba(214,186,107,.22), transparent 35%),
+    linear-gradient(145deg,#f1f5f1,#dceae3) !important;
+}
+
+.petora-real-product-visual img {
+  width: 100% !important;
+  height: 100% !important;
+  display: block !important;
+  object-fit: cover !important;
+}
+
+.petora-real-product-placeholder {
+  width: 100% !important;
+  height: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.petora-real-product-placeholder span {
+  padding: 10px 13px !important;
+  border-radius: 12px !important;
+  background: rgba(255,255,255,.78) !important;
+  color: #07513f !important;
+  font-size: 8px !important;
+  font-weight: 800 !important;
+  letter-spacing: .12em !important;
+  box-shadow: 0 7px 14px rgba(7,61,48,.08) !important;
+}
+
+.petora-discount {
+  position: absolute !important;
+  top: 8px !important;
+  left: 8px !important;
+  padding: 5px 7px !important;
+  border-radius: 999px !important;
+  background: #07513f !important;
+  color: #efc970 !important;
+  font-size: 7px !important;
+  font-weight: 800 !important;
+}
+
+.petora-real-product-body {
+  padding: 11px 12px 12px !important;
+}
+
+.petora-real-product-category {
+  color: #b18324 !important;
+  font-size: 7px !important;
+  font-weight: 800 !important;
+  letter-spacing: .12em !important;
+  text-transform: uppercase !important;
+}
+
+.petora-real-product-body h3 {
+  margin: 5px 0 4px !important;
+  color: #07513f !important;
+  font-size: 16px !important;
+  line-height: 1.08 !important;
+}
+
+.petora-real-product-body p {
+  min-height: 28px !important;
+  margin: 0 !important;
+  color: #77827c !important;
+  font-size: 8px !important;
+  line-height: 1.4 !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+}
+
+.petora-real-product-price {
+  display: flex !important;
+  align-items: baseline !important;
+  gap: 6px !important;
+  margin-top: 8px !important;
+}
+
+.petora-real-product-price strong {
+  color: #07513f !important;
+  font-size: 17px !important;
+  line-height: 1 !important;
+}
+
+.petora-real-product-price span {
+  color: #a0a8a3 !important;
+  font-size: 8px !important;
+  text-decoration: line-through !important;
+}
+
+.petora-real-product-meta {
+  display: flex !important;
+  justify-content: space-between !important;
+  gap: 6px !important;
+  margin-top: 7px !important;
+  color: #839089 !important;
+  font-size: 7px !important;
+}
+
+.petora-shop-product-button {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  width: 100% !important;
+  margin-top: 9px !important;
+  padding: 8px 9px !important;
+  border: 0 !important;
+  border-radius: 9px !important;
+  background: #07513f !important;
+  color: #fff !important;
+  font-size: 8px !important;
+  font-weight: 800 !important;
+  cursor: pointer !important;
+}
+
+.petora-shop-product-button span {
+  color: #efc970 !important;
+  font-size: 12px !important;
+}
+
+/* Loading / empty state */
+.petora-commerce-loading,
+.petora-commerce-message {
+  position: relative !important;
+  z-index: 2 !important;
+  min-height: 270px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  color: #75817a !important;
+  gap: 7px !important;
+}
+
+.petora-commerce-loading span {
+  width: 28px !important;
+  height: 28px !important;
+  border: 3px solid rgba(7,81,63,.12) !important;
+  border-top-color: #07513f !important;
+  border-radius: 50% !important;
+  animation: petoraCommerceSpin .8s linear infinite !important;
+}
+
+@keyframes petoraCommerceSpin {
+  to { transform: rotate(360deg); }
+}
+
+.petora-commerce-message strong {
+  color: #07513f !important;
+  font-size: 17px !important;
+}
+
+.petora-commerce-message span {
+  max-width: 280px !important;
+  font-size: 10px !important;
+  line-height: 1.5 !important;
+}
+
+/* Bottom trust line */
+.petora-commerce-trust {
+  position: relative !important;
+  z-index: 2 !important;
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  gap: 6px !important;
+  margin-top: 13px !important;
+  padding-top: 11px !important;
+  border-top: 1px solid rgba(7,61,48,.08) !important;
+}
+
+.petora-commerce-trust span {
+  padding: 6px 8px !important;
+  border-radius: 999px !important;
+  background: #f1f5f2 !important;
+  color: #637169 !important;
+  font-size: 7px !important;
+  font-weight: 700 !important;
+}
+
+/* ==============================
+   RESPONSIVE
+   ============================== */
+
+@media (max-width: 1050px) {
+  .home-two-column-final {
+    grid-template-columns: 1fr !important;
+  }
+
+  .petora-commerce-panel {
+    min-height: auto !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .petora-commerce-panel {
+    padding: 20px !important;
+    border-radius: 22px !important;
+  }
+
+  .petora-commerce-header {
+    display: block !important;
+  }
+
+  .petora-commerce-header > p {
+    max-width: none !important;
+    margin-top: 9px !important;
+  }
+
+  .petora-product-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .petora-real-product-card {
+    display: grid !important;
+    grid-template-columns: 105px minmax(0,1fr) !important;
+  }
+
+  .petora-real-product-visual {
+    height: 100% !important;
+    min-height: 145px !important;
+  }
+
+  .petora-pet-commerce-card {
+    grid-template-columns: 36% minmax(0,1fr) !important;
+  }
+}
+
+/* ============================================================
+   PETORA FINAL ACCURATE COMMERCE LAYOUT
+   ============================================================ */
+
+.petora-commerce-columns {
+  width: calc(100% - 48px) !important;
+  max-width: 1440px !important;
+  margin: 38px auto 0 !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+  gap: 22px !important;
+  align-items: stretch !important;
+}
+
+.petora-commerce-panel {
+  position: relative !important;
+  min-width: 0 !important;
+  padding: 27px !important;
+  border-radius: 25px !important;
+  background: rgba(255,255,255,.97) !important;
+  border: 1px solid rgba(7,81,63,.09) !important;
+  box-shadow:
+    0 14px 34px rgba(7,61,48,.09),
+    0 2px 7px rgba(7,61,48,.035) !important;
+  overflow: hidden !important;
+}
+
+.petora-commerce-heading {
+  position: relative !important;
+  z-index: 3 !important;
+  display: flex !important;
+  align-items: flex-end !important;
+  justify-content: space-between !important;
+  gap: 18px !important;
+  margin-bottom: 18px !important;
+}
+
+.petora-commerce-heading h2 {
+  margin: 6px 0 0 !important;
+  color: var(--green) !important;
+  font-family: "Playfair Display", Georgia, serif !important;
+  font-size: clamp(31px, 2.9vw, 43px) !important;
+  line-height: .98 !important;
+  letter-spacing: -.045em !important;
+}
+
+.petora-commerce-heading > p {
+  max-width: 220px !important;
+  margin: 0 !important;
+  color: var(--muted) !important;
+  font-size: 10px !important;
+  line-height: 1.55 !important;
+}
+
+/* ---------- LEFT PET CATEGORY CARDS ---------- */
+
+.petora-pet-list {
+  position: relative !important;
+  z-index: 3 !important;
+  display: grid !important;
+  gap: 10px !important;
+}
+
+.petora-pet-card {
+  position: relative !important;
+  display: grid !important;
+  grid-template-columns: 37% minmax(0,1fr) auto !important;
+  align-items: center !important;
+  width: 100% !important;
+  min-height: 106px !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  border: 0 !important;
+  border-radius: 17px !important;
+  background: linear-gradient(135deg,#0a5a45,#073d31) !important;
+  color: #fff !important;
+  text-align: left !important;
+  box-shadow: 0 7px 17px rgba(7,61,48,.12) !important;
+  cursor: pointer !important;
+  transition:
+    transform .22s ease,
+    box-shadow .22s ease !important;
+}
+
+.petora-pet-card:hover {
+  transform: translateY(-3px) !important;
+  box-shadow: 0 13px 24px rgba(7,61,48,.17) !important;
+}
+
+.petora-pet-photo {
+  position: relative !important;
+  align-self: stretch !important;
+  min-height: 106px !important;
+  overflow: hidden !important;
+}
+
+.petora-pet-photo img {
+  width: 100% !important;
+  height: 100% !important;
+  display: block !important;
+  object-fit: cover !important;
+  transition: transform .28s ease !important;
+}
+
+.petora-pet-card:hover .petora-pet-photo img {
+  transform: scale(1.06) !important;
+}
+
+.petora-pet-photo::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 !important;
+  background: linear-gradient(
+    90deg,
+    rgba(4,33,26,0) 25%,
+    rgba(4,33,26,.38)
+  ) !important;
+}
+
+.petora-pet-photo span {
+  position: absolute !important;
+  left: 8px !important;
+  bottom: 8px !important;
+  z-index: 2 !important;
+  padding: 5px 7px !important;
+  border-radius: 999px !important;
+  background: rgba(255,255,255,.91) !important;
+  color: var(--green) !important;
+  font-size: 6px !important;
+  font-weight: 800 !important;
+  letter-spacing: .08em !important;
+}
+
+.petora-pet-info {
+  min-width: 0 !important;
+  padding: 13px !important;
+}
+
+.petora-pet-info small {
+  display: block !important;
+  margin-bottom: 4px !important;
+  color: #efc970 !important;
+  font-size: 7px !important;
+  font-weight: 800 !important;
+  letter-spacing: .14em !important;
+}
+
+.petora-pet-info h3 {
+  margin: 0 0 3px !important;
+  color: #fff !important;
+  font-size: 20px !important;
+  line-height: 1 !important;
+}
+
+.petora-pet-info p {
+  margin: 0 !important;
+  color: rgba(255,255,255,.72) !important;
+  font-size: 8px !important;
+  line-height: 1.35 !important;
+}
+
+.petora-round-arrow {
+  width: 31px !important;
+  height: 31px !important;
+  margin-right: 13px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 50% !important;
+  background: #fff !important;
+  color: var(--green) !important;
+  font-size: 14px !important;
+  font-weight: 800 !important;
+}
+
+/* ---------- RIGHT REAL PRODUCT STORE ---------- */
+
+.petora-product-list {
+  position: relative !important;
+  z-index: 3 !important;
+  display: grid !important;
+  gap: 10px !important;
+}
+
+.petora-product-card {
+  display: grid !important;
+  grid-template-columns: 112px minmax(0,1fr) !important;
+  min-height: 112px !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(7,81,63,.08) !important;
+  border-radius: 16px !important;
+  background: #fff !important;
+  box-shadow: 0 7px 17px rgba(7,61,48,.07) !important;
+  transition:
+    transform .22s ease,
+    box-shadow .22s ease !important;
+}
+
+.petora-product-card:hover {
+  transform: translateY(-3px) !important;
+  box-shadow: 0 13px 24px rgba(7,61,48,.12) !important;
+}
+
+.petora-product-image {
+  position: relative !important;
+  min-height: 112px !important;
+  overflow: hidden !important;
+  background:
+    radial-gradient(circle at 30% 25%, rgba(179,138,50,.18), transparent 35%),
+    linear-gradient(145deg,#eef5ef,#dce9e3) !important;
+}
+
+.petora-product-image img {
+  width: 100% !important;
+  height: 100% !important;
+  display: block !important;
+  object-fit: cover !important;
+}
+
+.petora-product-art {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 112px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background:
+    radial-gradient(circle at center,
+      rgba(255,255,255,.88),
+      rgba(214,230,220,.28)) !important;
+}
+
+.petora-product-art span {
+  padding: 10px 9px !important;
+  border-radius: 11px !important;
+  background: rgba(255,255,255,.82) !important;
+  color: var(--green) !important;
+  font-size: 7px !important;
+  font-weight: 800 !important;
+  letter-spacing: .11em !important;
+  box-shadow: 0 6px 14px rgba(7,61,48,.08) !important;
+}
+
+.petora-product-offer {
+  position: absolute !important;
+  top: 8px !important;
+  left: 8px !important;
+  padding: 5px 7px !important;
+  border-radius: 999px !important;
+  background: var(--green) !important;
+  color: #efc970 !important;
+  font-size: 6px !important;
+  font-weight: 800 !important;
+}
+
+.petora-product-content {
+  min-width: 0 !important;
+  padding: 11px 12px !important;
+}
+
+.petora-product-topline {
+  display: flex !important;
+  justify-content: space-between !important;
+  gap: 7px !important;
+  color: #b18324 !important;
+  font-size: 7px !important;
+  font-weight: 800 !important;
+  letter-spacing: .10em !important;
+  text-transform: uppercase !important;
+}
+
+.petora-product-topline b {
+  color: #408061 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+
+.petora-product-content h3 {
+  margin: 5px 0 3px !important;
+  color: var(--green) !important;
+  font-size: 17px !important;
+  line-height: 1.05 !important;
+}
+
+.petora-product-content p {
+  margin: 0 !important;
+  color: #7a8680 !important;
+  font-size: 8px !important;
+  line-height: 1.4 !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+}
+
+.petora-product-price-row {
+  display: flex !important;
+  align-items: baseline !important;
+  gap: 7px !important;
+  margin-top: 6px !important;
+}
+
+.petora-product-price-row strong {
+  color: var(--green) !important;
+  font-size: 17px !important;
+  line-height: 1 !important;
+}
+
+.petora-product-price-row del {
+  color: #a5ada8 !important;
+  font-size: 8px !important;
+}
+
+.petora-order-button {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  width: 100% !important;
+  margin-top: 7px !important;
+  padding: 7px 9px !important;
+  border-radius: 8px !important;
+  background: var(--green) !important;
+  color: #fff !important;
+  text-decoration: none !important;
+  font-size: 8px !important;
+  font-weight: 800 !important;
+}
+
+.petora-order-button span {
+  color: #efc970 !important;
+  font-size: 11px !important;
+}
+
+.petora-commerce-trust,
+.petora-commerce-store-footer {
+  position: relative !important;
+  z-index: 3 !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  gap: 6px !important;
+  margin-top: 13px !important;
+  padding-top: 11px !important;
+  border-top: 1px solid rgba(7,61,48,.08) !important;
+}
+
+.petora-commerce-trust span,
+.petora-commerce-store-footer span,
+.petora-commerce-store-footer strong {
+  padding: 6px 8px !important;
+  border-radius: 999px !important;
+  background: #f1f5f2 !important;
+  color: #68766f !important;
+  font-size: 7px !important;
+  font-weight: 700 !important;
+}
+
+.petora-commerce-store-footer {
+  justify-content: space-between !important;
+}
+
+.petora-commerce-store-footer strong {
+  color: var(--green) !important;
+}
+
+.petora-store-state {
+  position: relative !important;
+  z-index: 3 !important;
+  min-height: 360px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  gap: 8px !important;
+  color: var(--muted) !important;
+}
+
+.petora-store-state strong {
+  color: var(--green) !important;
+  font-size: 18px !important;
+}
+
+.petora-store-state span {
+  max-width: 260px !important;
+  font-size: 10px !important;
+  line-height: 1.5 !important;
+}
+
+.petora-store-spinner {
+  width: 29px !important;
+  height: 29px !important;
+  border: 3px solid rgba(7,81,63,.12) !important;
+  border-top-color: var(--green) !important;
+  border-radius: 50% !important;
+  animation: petoraStoreSpin .8s linear infinite !important;
+}
+
+@keyframes petoraStoreSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* ---------- RESPONSIVE ---------- */
+
+@media (max-width: 1050px) {
+  .petora-commerce-columns {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 700px) {
+  .petora-commerce-columns {
+    width: calc(100% - 18px) !important;
+    grid-template-columns: 1fr !important;
+    gap: 18px !important;
+  }
+
+  .petora-commerce-panel {
+    padding: 20px !important;
+    border-radius: 21px !important;
+  }
+
+  .petora-commerce-heading {
+    display: block !important;
+  }
+
+  .petora-commerce-heading > p {
+    max-width: none !important;
+    margin-top: 9px !important;
+  }
+
+  .petora-pet-card {
+    grid-template-columns: 36% minmax(0,1fr) auto !important;
+  }
+
+  .petora-product-card {
+    grid-template-columns: 100px minmax(0,1fr) !important;
+  }
+
+  .petora-product-image,
+  .petora-product-art {
+    min-height: 116px !important;
+  }
+}
+
+/* ============================================================
+   PETORA — SYNCHRONIZED 3-ROW COMMERCE LAYOUT
+   Both selling panels use exactly the same vertical rhythm.
+   ============================================================ */
+
+.petora-commerce-columns {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+  gap: 22px !important;
+  align-items: stretch !important;
+}
+
+.petora-commerce-panel {
+  display: grid !important;
+  grid-template-rows: 92px 1fr auto !important;
+  min-height: 0 !important;
+  height: 100% !important;
+}
+
+/* Same heading height on both sides */
+.petora-commerce-heading {
+  height: 92px !important;
+  min-height: 92px !important;
+  margin-bottom: 0 !important;
+  align-items: start !important;
+}
+
+/* ------------------------------------------------------------
+   BOTH SIDES = EXACTLY 3 ROWS
+   ------------------------------------------------------------ */
+
+.petora-pet-list,
+.petora-product-list {
+  display: grid !important;
+  grid-template-rows: repeat(3, 126px) !important;
+  gap: 10px !important;
+  height: 398px !important;
+  min-height: 398px !important;
+  align-content: start !important;
+}
+
+/* ------------------------------------------------------------
+   LEFT PET CARDS
+   ------------------------------------------------------------ */
+
+.petora-pet-card {
+  height: 126px !important;
+  min-height: 126px !important;
+  max-height: 126px !important;
+  overflow: hidden !important;
+  display: grid !important;
+  grid-template-columns: 37% minmax(0, 1fr) auto !important;
+}
+
+.petora-pet-photo {
+  height: 126px !important;
+  min-height: 126px !important;
+  max-height: 126px !important;
+}
+
+.petora-pet-photo img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}
+
+.petora-pet-info {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  min-width: 0 !important;
+  padding: 14px !important;
+}
+
+.petora-pet-info h3 {
+  margin: 0 0 4px !important;
+}
+
+.petora-pet-info p {
+  margin: 0 !important;
+}
+
+.petora-round-arrow {
+  margin-right: 13px !important;
+}
+
+/* ------------------------------------------------------------
+   RIGHT PRODUCT CARDS
+   ------------------------------------------------------------ */
+
+.petora-product-card {
+  height: 126px !important;
+  min-height: 126px !important;
+  max-height: 126px !important;
+  overflow: hidden !important;
+}
+
+.petora-product-image {
+  height: 126px !important;
+  min-height: 126px !important;
+  max-height: 126px !important;
+}
+
+.petora-product-content {
+  min-width: 0 !important;
+  padding: 10px 12px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+}
+
+.petora-product-content h3 {
+  margin: 4px 0 3px !important;
+}
+
+.petora-product-content p {
+  margin: 0 !important;
+  min-height: 0 !important;
+}
+
+.petora-product-price-row {
+  margin-top: 5px !important;
+}
+
+.petora-order-button {
+  margin-top: 6px !important;
+}
+
+/* ------------------------------------------------------------
+   BOTTOM AREAS ALIGN
+   ------------------------------------------------------------ */
+
+.petora-commerce-trust,
+.petora-commerce-store-footer {
+  min-height: 31px !important;
+  margin-top: 12px !important;
+  padding-top: 10px !important;
+  align-items: center !important;
+}
+
+/* ------------------------------------------------------------
+   VISUAL UNITY
+   ------------------------------------------------------------ */
+
+.petora-pet-card,
+.petora-product-card {
+  box-shadow:
+    0 7px 17px rgba(7,61,48,.09) !important;
+}
+
+.petora-pet-card:hover,
+.petora-product-card:hover {
+  transform: translateY(-2px) !important;
+}
+
+/* ------------------------------------------------------------
+   DESKTOP — keep both columns perfectly matched
+   ------------------------------------------------------------ */
+
+@media (min-width: 1051px) {
+  .petora-commerce-panel {
+    min-height: 545px !important;
+  }
+
+  .petora-pet-list,
+  .petora-product-list {
+    height: 398px !important;
+    min-height: 398px !important;
+  }
+}
+
+/* ------------------------------------------------------------
+   TABLET / MOBILE
+   ------------------------------------------------------------ */
+
+@media (max-width: 1050px) {
+  .petora-commerce-columns {
+    grid-template-columns: 1fr !important;
+  }
+
+  .petora-commerce-panel {
+    height: auto !important;
+    min-height: 0 !important;
+  }
+}
+
+@media (max-width: 700px) {
+  .petora-commerce-panel {
+    display: block !important;
+  }
+
+  .petora-commerce-heading {
+    height: auto !important;
+    min-height: 0 !important;
+    margin-bottom: 16px !important;
+  }
+
+  .petora-pet-list,
+  .petora-product-list {
+    height: auto !important;
+    min-height: 0 !important;
+    grid-template-rows: repeat(3, 112px) !important;
+  }
+
+  .petora-pet-card,
+  .petora-product-card {
+    height: 112px !important;
+    min-height: 112px !important;
+    max-height: 112px !important;
+  }
+
+  .petora-pet-photo,
+  .petora-product-image {
+    height: 112px !important;
+    min-height: 112px !important;
+    max-height: 112px !important;
+  }
+}
+
+
+/* ============================================================
+   PETORA — FIX HEADING / IMAGE OVERLAP
+   ============================================================ */
+
+@media (min-width: 1051px) {
+
+  .petora-commerce-panel {
+    grid-template-rows: 128px 398px auto !important;
+    min-height: 570px !important;
+    height: auto !important;
+  }
+
+  .petora-commerce-heading {
+    height: 128px !important;
+    min-height: 128px !important;
+    margin-bottom: 0 !important;
+    overflow: visible !important;
+  }
+
+  .petora-commerce-heading h2 {
+    position: relative !important;
+    z-index: 10 !important;
+    margin-bottom: 0 !important;
+  }
+
+  .petora-pet-list,
+  .petora-product-list {
+    margin-top: 0 !important;
+    position: relative !important;
+    z-index: 2 !important;
+  }
+
+  .petora-pet-card,
+  .petora-product-card {
+    position: relative !important;
+    z-index: 2 !important;
+  }
+}
+
+/* Keep mobile clean */
+@media (max-width: 1050px) {
+
+  .petora-commerce-panel {
+    grid-template-rows: auto auto auto !important;
+    min-height: 0 !important;
+    height: auto !important;
+  }
+
+  .petora-commerce-heading {
+    height: auto !important;
+    min-height: 0 !important;
+    margin-bottom: 18px !important;
+  }
+}
+

@@ -38,6 +38,21 @@ type Pet = {
   description: string;
 };
 
+type Product = {
+  product_id: string;
+  category: string;
+  subcategory: string;
+  product_name: string;
+  brand: string;
+  price: string;
+  mrp: string;
+  stock: string;
+  unit: string;
+  image: string;
+  description: string;
+  status: string;
+};
+
 const categoryCards = [
   {
     title: "Dogs",
@@ -53,12 +68,12 @@ const categoryCards = [
   },
   {
     title: "Aquatics",
-    subtitle: "Fish & aquatic life",
+    subtitle: "Fish",
     image:
       "https://images.unsplash.com/photo-1524704654690-b56c05c78a00?auto=format&fit=crop&w=1400&q=85",
   },
   {
-    title: "Reptiles",
+    title: "",
     subtitle: "Unique companions",
     image:
       "https://images.unsplash.com/photo-1504457047772-27faf1c00561?auto=format&fit=crop&w=1400&q=85",
@@ -134,7 +149,7 @@ function categoryFromPet(pet: ApiPet): string {
     category.includes("reptile") ||
     species.includes("reptile")
   ) {
-    return "Reptiles";
+    return "";
   }
 
   if (
@@ -221,6 +236,14 @@ export default function Home() {
   const [pets, setPets] = useState<Pet[]>(
     []
   );
+
+  const [products, setProducts] = useState<Product[]>([]);
+
+  const [productsLoading, setProductsLoading] =
+    useState(true);
+
+  const [productsError, setProductsError] =
+    useState("");
 
   const [loading, setLoading] =
     useState(true);
@@ -331,6 +354,88 @@ export default function Home() {
     }
 
     loadInventory();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadProducts() {
+      try {
+        setProductsLoading(true);
+        setProductsError("");
+
+        const response = await fetch("/api/products", {
+          cache: "no-store",
+        });
+
+        if (!response.ok) {
+          throw new Error(
+            `Products request failed with status ${response.status}`
+          );
+        }
+
+        const data: unknown = await response.json();
+
+        if (!Array.isArray(data)) {
+          throw new Error(
+            "The PETORA products API did not return an array."
+          );
+        }
+
+        const normalized: Product[] = data
+          .filter(
+            (item): item is Record<string, unknown> =>
+              Boolean(item) &&
+              typeof item === "object"
+          )
+          .map((item) => ({
+            product_id: clean(item.product_id),
+            category: clean(item.category),
+            subcategory: clean(item.subcategory),
+            product_name: clean(item.product_name),
+            brand: clean(item.brand),
+            price: clean(item.price),
+            mrp: clean(item.mrp),
+            stock: clean(item.stock),
+            unit: clean(item.unit),
+            image: clean(item.image),
+            description: clean(item.description),
+            status: clean(item.status),
+          }))
+          .filter(
+            (product) =>
+              product.product_id &&
+              product.product_name &&
+              product.status.toLowerCase() === "available" &&
+              Number(product.stock) > 0
+          );
+
+        if (!cancelled) {
+          setProducts(normalized);
+          console.log("PETORA products loaded:", normalized);
+        }
+      } catch (error) {
+        console.error("PETORA products error:", error);
+
+        if (!cancelled) {
+          setProducts([]);
+          setProductsError(
+            "Unable to load PETORA products right now."
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setProductsLoading(false);
+        }
+      }
+    }
+
+    loadProducts();
 
     return () => {
       cancelled = true;
@@ -758,6 +863,12 @@ export default function Home() {
           >
             Pets
           </button>
+      <button
+        type="button"
+        onClick={() => goTo("shop")}
+      >
+        Shop
+      </button>
 
           <button
             type="button"
@@ -877,77 +988,283 @@ export default function Home() {
       {/* =========================
           CATEGORY DISCOVERY
       ========================= */}
-      <section
-        id="categories"
-        className="category-section"
+      
+
+<div className="petora-commerce-columns">
+
+  {/* =====================================================
+      LEFT — SHOP BY PET
+      ===================================================== */}
+  <section id="categories" className="petora-commerce-panel petora-pets-panel">
+
+    <div className="petora-commerce-heading">
+      <div>
+        <span className="eyebrow">SHOP BY PET</span>
+        <h2>Find your next companion.</h2>
+      </div>
+
+      <p>
+        Explore the pets currently featured by PETORA and discover the
+        category that matches your lifestyle.
+      </p>
+    </div>
+
+    <div className="petora-pet-list">
+
+      <button
+        type="button"
+        className="petora-pet-card"
+        onClick={() => {
+          setCategory("Dogs");
+          goTo("pets");
+        }}
       >
-        <div className="section-heading">
-
-          <div>
-            <span className="eyebrow">
-              EXPLORE PETORA
-            </span>
-
-            <h2>
-              A world full of animals.
-            </h2>
-          </div>
-
-          <p>
-            PETORA is being built to support
-            a growing range of pet categories.
-          </p>
-
+        <div className="petora-pet-photo">
+          <img
+            src="/products/dogo-argentino.jpg"
+            alt="Dog"
+          />
+          <span>VIEW DOGS</span>
         </div>
 
-        <div className="category-grid">
+        <div className="petora-pet-info">
+          <small>COMPANIONS</small>
+          <h3>Dogs</h3>
+          <p>Dogs & available companions</p>
+        </div>
 
-          {categoryCards.map(
-            (item) => (
-              <button
-                type="button"
-                key={item.title}
-                className="category-card"
-                onClick={() => {
-                  if (
-                    item.title ===
-                    "Dogs"
-                  ) {
-                    setCategory(
-                      "Dogs"
-                    );
-                    goTo("pets");
-                  } else {
-                    goTo("categories");
-                  }
-                }}
-              >
+        <span className="petora-round-arrow">→</span>
+      </button>
 
-                <img
-                  src={item.image}
-                  alt={item.title}
-                />
+      <button
+        type="button"
+        className="petora-pet-card"
+        onClick={() => {
+          setCategory("Cats");
+          goTo("pets");
+        }}
+      >
+        <div className="petora-pet-photo">
+          <img
+            src="/products/persian-cat.jpg"
+            alt="Cat"
+          />
+          <span>VIEW CATS</span>
+        </div>
 
-                <div className="category-overlay">
-                  <strong>
-                    {item.title}
-                  </strong>
+        <div className="petora-pet-info">
+          <small>COMPANIONS</small>
+          <h3>Cats</h3>
+          <p>Cats & available companions</p>
+        </div>
 
-                  <span>
-                    {item.subtitle}
+        <span className="petora-round-arrow">→</span>
+      </button>
+
+      <button
+        type="button"
+        className="petora-pet-card"
+        onClick={() => {
+          setCategory("Aquatics");
+          goTo("pets");
+        }}
+      >
+        <div className="petora-pet-photo">
+          <img
+            src="/products/golden-arowana.jpg"
+            alt="Aquatic fish"
+          />
+          <span>VIEW FISH</span>
+        </div>
+
+        <div className="petora-pet-info">
+          <small>AQUATICS</small>
+          <h3>Fish</h3>
+          <p>Golden Arowana & aquatic companions</p>
+        </div>
+
+        <span className="petora-round-arrow">→</span>
+      </button>
+
+    </div>
+
+    <div className="petora-commerce-trust">
+      <span>✓ Real listings</span>
+      <span>✓ Clear information</span>
+      <span>✓ PETORA guidance</span>
+    </div>
+
+  </section>
+
+
+  {/* =====================================================
+      RIGHT — REAL PRODUCT STORE
+      ===================================================== */}
+  <section id="shop" className="petora-commerce-panel petora-store-panel">
+
+    <div className="petora-commerce-heading">
+      <div>
+        <span className="eyebrow">PETORA STORE</span>
+        <h2>Everything your pet needs.</h2>
+      </div>
+
+      <p>
+        Shop food, care products and accessories using live PETORA inventory.
+      </p>
+    </div>
+
+    {productsLoading && (
+      <div className="petora-store-state">
+        <span className="petora-store-spinner"></span>
+        <strong>Loading products...</strong>
+      </div>
+    )}
+
+    {!productsLoading && productsError && (
+      <div className="petora-store-state">
+        <strong>Store unavailable</strong>
+        <span>{productsError}</span>
+      </div>
+    )}
+
+    {!productsLoading && !productsError && products.length === 0 && (
+      <div className="petora-store-state">
+        <strong>More products coming soon</strong>
+        <span>
+          Products will appear here as they are added to PETORA inventory.
+        </span>
+      </div>
+    )}
+
+    {!productsLoading && !productsError && products.length > 0 && (
+      <div className="petora-product-list">
+
+        {products.slice(0, 3).map((product) => {
+          const priceNumber = Number(
+            product.price.replace(/[^\d.]/g, "")
+          );
+
+          const mrpNumber = Number(
+            product.mrp.replace(/[^\d.]/g, "")
+          );
+
+          const price = Number.isFinite(priceNumber)
+            ? `₹${priceNumber.toLocaleString("en-IN")}`
+            : product.price;
+
+          const mrp =
+            Number.isFinite(mrpNumber) &&
+            mrpNumber > priceNumber
+              ? `₹${mrpNumber.toLocaleString("en-IN")}`
+              : "";
+
+          const productImageMap: Record<string, string> = {
+            PF001: "/products/premium-puppy-food.png",
+            PP001: "/products/pet-shampoo.png",
+            PA001: "/products/premium-dog-collar.png",
+          };
+
+          const image =
+            productImageMap[product.product_id] ||
+            (product.image
+              ? product.image.startsWith("http")
+                ? product.image
+                : `/${product.image.replace(/^\/+/, "")}`
+              : "");
+
+          const whatsappText = encodeURIComponent(
+            `Hello PETORA, I want to order ${product.product_name} (${product.product_id}) listed at ${price}.`
+          );
+
+          return (
+            <article
+              key={product.product_id}
+              className="petora-product-card"
+            >
+              <div className="petora-product-image">
+
+                {image ? (
+                  <img
+                    src={image}
+                    alt={product.product_name}
+                  />
+                ) : (
+                  <div className="petora-product-art">
+                    <span>
+                      {product.category === "Pet Food"
+                        ? "FOOD"
+                        : product.category === "Accessories"
+                          ? "ACCESSORY"
+                          : "CARE"}
+                    </span>
+                  </div>
+                )}
+
+                {mrp && (
+                  <span className="petora-product-offer">
+                    SALE
                   </span>
+                )}
+
+              </div>
+
+              <div className="petora-product-content">
+
+                <div className="petora-product-topline">
+                  <span>
+                    {product.subcategory || product.category}
+                  </span>
+
+                  <b>
+                    {product.stock} in stock
+                  </b>
                 </div>
 
-                <span className="category-arrow">
-                  →
-                </span>
+                <h3>{product.product_name}</h3>
 
-              </button>
-            )
-          )}
+                <p>
+                  {product.description ||
+                    "Quality everyday essentials for your pet."}
+                </p>
 
-        </div>
-      </section>
+                <div className="petora-product-price-row">
+                  <strong>{price}</strong>
+
+                  {mrp && (
+                    <del>{mrp}</del>
+                  )}
+                </div>
+
+                <a
+                  className="petora-order-button"
+                  href={`https://wa.me/917011769749?text=${whatsappText}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Order on WhatsApp
+                  <span>→</span>
+                </a>
+
+              </div>
+            </article>
+          );
+        })}
+
+      </div>
+    )}
+
+    <div className="petora-commerce-store-footer">
+      <span>Live product inventory</span>
+      <span>Secure order conversation</span>
+      <strong>PETORA Store</strong>
+    </div>
+
+  </section>
+
+</div>
+
+
+
 
       {/* =========================
           MARKETPLACE
@@ -1442,7 +1759,9 @@ export default function Home() {
       {/* =========================
           CONTACT / ENQUIRY
       ========================= */}
-      <section
+              
+
+<section
         id="contact"
         className="contact-section"
       >
@@ -1756,7 +2075,7 @@ export default function Home() {
                 goTo("categories")
               }
             >
-              Reptiles
+              
             </button>
 
           </div>
