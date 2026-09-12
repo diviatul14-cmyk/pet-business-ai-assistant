@@ -1942,9 +1942,14 @@ export default function Home() {
                 📍 Patna, Bihar
               </span>
 
-              <span>
+              <a
+                href="https://wa.me/917011769749"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="contact-whatsapp"
+              >
                 💬 WhatsApp
-              </span>
+              </a>
 
               <span>
                 ✦ PETORA Support
