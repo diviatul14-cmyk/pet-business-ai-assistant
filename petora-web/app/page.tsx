@@ -1944,8 +1944,6 @@ export default function Home() {
 
               <a
                 href="https://wa.me/917011769749"
-                target="_blank"
-                rel="noopener noreferrer"
                 className="contact-whatsapp"
               >
                 💬 WhatsApp
