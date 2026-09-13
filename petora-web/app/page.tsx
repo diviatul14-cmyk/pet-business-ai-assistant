@@ -1262,106 +1262,6 @@ export default function Home() {
 
 
       {/* =========================
-          PRE-ORDER COLLECTION
-      ========================= */}
-      {photographedPets.some(
-        (pet) =>
-          pet.status.trim().toLowerCase() ===
-          "pre-order / verify stock"
-      ) && (
-        <section className="marketplace-section petora-preorder-section">
-          <div className="marketplace-heading">
-            <div>
-              <span className="eyebrow">PETORA PRE-ORDER</span>
-              <h2>Premium Pets & Aquatics</h2>
-              <p>
-                Browse our upcoming cats, marine fish and Arowana collection.
-              </p>
-            </div>
-
-            <div className="availability-badge">
-              {
-                photographedPets.filter(
-                  (pet) =>
-                    pet.status.trim().toLowerCase() ===
-                    "pre-order / verify stock"
-                ).length
-              } Pre-Order
-            </div>
-          </div>
-
-          <div className="pet-grid">
-            {photographedPets
-              .filter(
-                (pet) =>
-                  pet.status.trim().toLowerCase() ===
-                  "pre-order / verify stock"
-              )
-              .map((pet) => (
-                <article
-                  key={pet.id}
-                  className="pet-card"
-                >
-                  <div className="pet-image-wrap">
-                    <img
-                      src={pet.image}
-                      alt={`${pet.name} - ${pet.breed}`}
-                      className="pet-image"
-                    />
-                    <span className="pet-status">
-                      PRE-ORDER
-                    </span>
-                  </div>
-
-                  <div className="pet-card-body">
-                    <span className="pet-category">
-                      {pet.category}
-                    </span>
-
-                    <h3>{pet.breed}</h3>
-
-                    <p className="pet-name">
-                      {pet.name} · {pet.id}
-                    </p>
-
-                    <div className="pet-details">
-                      {pet.age && (
-                        <span>
-                          <b>Age</b>
-                          {pet.age}
-                        </span>
-                      )}
-
-                      {pet.location && (
-                        <span>
-                          <b>Location</b>
-                          {pet.location}
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="pet-card-footer">
-                      <div>
-                        <small>Price</small>
-                        <strong>{money(pet.price)}</strong>
-                      </div>
-
-                      <button
-                        type="button"
-                        className="interest-button"
-                        onClick={() => choosePet(pet)}
-                      >
-                        Pre-Order →
-                      </button>
-                    </div>
-                  </div>
-                </article>
-              ))}
-          </div>
-        </section>
-      )}
-
-      {/* =========================
           MARKETPLACE
       ========================= */}
       <section
@@ -1398,161 +1298,133 @@ export default function Home() {
           ====================== */}
           <div className="marketplace-main">
 
-            <div className="search-row">
-
-              <div className="search-box">
-
-                <span>
-                  ⌕
+            <div className="marketplace-heading">
+              <div>
+                <span className="eyebrow">
+                  PETORA COLLECTION
                 </span>
 
-                <input
-                  value={search}
-                  onChange={(event) =>
-                    setSearch(
-                      event.target.value
-                    )
-                  }
-                  placeholder="Search breed, pet ID or location..."
-                />
+                <h2>
+                  Find Your New Best Friend
+                </h2>
 
-                {search && (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setSearch("")
-                    }
-                  >
-                    Clear
-                  </button>
-                )}
-
+                <p>
+                  Explore Dogs, Cats and Aquatics from the current PETORA inventory.
+                </p>
               </div>
 
+              <div className="availability-badge">
+                {availablePets.length} Available
+              </div>
             </div>
 
-            <div className="filter-row">
-
+            <div className="petora-category-tabs">
               <button
                 type="button"
-                className={
-                  category ===
-                  "All"
-                    ? "filter-button active"
-                    : "filter-button"
-                }
-                onClick={() =>
-                  setCategory(
-                    "All"
-                  )
-                }
+                className="filter-button active"
+                onClick={() => goTo("pets")}
               >
                 All Pets
               </button>
 
               <button
                 type="button"
-                className={
-                  category ===
-                  "Dogs"
-                    ? "filter-button active"
-                    : "filter-button"
-                }
-                onClick={() =>
-                  setCategory(
-                    "Dogs"
-                  )
-                }
+                className="filter-button"
+                onClick={() => setCategory("Dogs")}
               >
                 Dogs
               </button>
 
+              <button
+                type="button"
+                className="filter-button"
+                onClick={() => setCategory("Cats")}
+              >
+                Cats
+              </button>
+
+              <button
+                type="button"
+                className="filter-button"
+                onClick={() => setCategory("Aquatics")}
+              >
+                Aquatics
+              </button>
             </div>
 
-            {loading && (
-              <div className="inventory-state">
+            {["Dogs", "Cats", "Aquatics"].map((sectionCategory) => {
+              const categoryPets = photographedPets.filter(
+                (pet) => pet.category === sectionCategory
+              );
 
-                <div className="loading-spinner" />
+              if (categoryPets.length === 0) {
+                return null;
+              }
 
-                <h3>
-                  Loading PETORA inventory...
-                </h3>
+              const icon =
+                sectionCategory === "Dogs"
+                  ? "🐶"
+                  : sectionCategory === "Cats"
+                    ? "🐱"
+                    : "🐟";
 
-                <p>
-                  Checking current listings.
-                </p>
+              const subtitle =
+                sectionCategory === "Dogs"
+                  ? "Loyal companions for a happier life."
+                  : sectionCategory === "Cats"
+                    ? "Graceful, playful companions with personality."
+                    : "Freshwater, marine fish and premium Arowana.";
 
-              </div>
-            )}
+              return (
+                <section
+                  key={sectionCategory}
+                  className="petora-category-row"
+                >
+                  <div className="petora-category-intro">
+                    <div className="petora-category-icon">
+                      {icon}
+                    </div>
 
-            {!loading &&
-              inventoryError && (
-                <div className="inventory-state error-state">
+                    <span className="eyebrow">
+                      COMPANIONS
+                    </span>
 
-                  <h3>
-                    Inventory unavailable
-                  </h3>
+                    <h3>
+                      {sectionCategory}
+                    </h3>
 
-                  <p>
-                    {inventoryError}
-                  </p>
-
-                </div>
-              )}
-
-            {!loading &&
-              !inventoryError &&
-              filteredPets.length ===
-                0 && (
-                <div className="inventory-state">
-
-                  <div className="empty-paw">
-                    <span />
-                    <span />
+                    <p>
+                      {subtitle}
+                    </p>
                   </div>
 
-                  <h3>
-                    No matching pets found
-                  </h3>
-
-                  <p>
-                    Try another breed,
-                    pet ID or location.
-                  </p>
-
-                </div>
-              )}
-
-            {!loading &&
-              !inventoryError &&
-              filteredPets.length >
-                0 && (
-                <div className="pet-grid">
-
-                  {filteredPets.map(
-                    (pet) => (
+                  <div className="petora-category-strip">
+                    {categoryPets.map((pet) => (
                       <article
                         key={pet.id}
-                        className="pet-card"
+                        className="petora-mini-card"
                       >
-
-                        {/* REAL IMAGE */}
-                        <div className="pet-image-wrap">
-
+                        <div className="petora-mini-image-wrap">
                           <img
                             src={pet.image}
                             alt={`${pet.name} - ${pet.breed}`}
-                            className="pet-image"
+                            className="petora-mini-image"
                           />
 
-                          <span className="pet-status">
-                            ✓ Available
+                          <span
+                            className={
+                              isAvailable(pet)
+                                ? "pet-status"
+                                : "pet-status pet-status-preorder"
+                            }
+                          >
+                            {isAvailable(pet)
+                              ? "✓ Available"
+                              : "PRE-ORDER"}
                           </span>
-
                         </div>
 
-                        <div className="pet-card-body">
-
+                        <div className="petora-mini-body">
                           <span className="pet-category">
                             {pet.category}
                           </span>
@@ -1562,104 +1434,34 @@ export default function Home() {
                           </h3>
 
                           <p className="pet-name">
-                            {pet.name}
-                            {" · "}
-                            {pet.id}
+                            {pet.name} · {pet.id}
                           </p>
 
-                          <div className="pet-details">
-
-                            {pet.gender && (
-                              <span>
-                                <b>
-                                  Gender
-                                </b>
-                                {pet.gender}
-                              </span>
-                            )}
-
-                            {pet.age && (
-                              <span>
-                                <b>
-                                  Age
-                                </b>
-                                {pet.age}
-                              </span>
-                            )}
-
-                            {pet.location && (
-                              <span>
-                                <b>
-                                  Location
-                                </b>
-                                {pet.location}
-                              </span>
-                            )}
-
-                            {pet.vaccinated && (
-                              <span>
-                                <b>
-                                  Vaccinated
-                                </b>
-                                {pet.vaccinated}
-                              </span>
-                            )}
-
+                          <div className="petora-mini-meta">
+                            <span>{pet.age || "Juvenile"}</span>
+                            <span>{pet.location || "Patna"}</span>
                           </div>
 
-                          <div className="pet-card-footer">
+                          <strong className="petora-mini-price">
+                            {money(pet.price)}
+                          </strong>
 
-                            <div>
-                              <small>
-                                Price
-                              </small>
-
-                              <strong>
-                                {money(
-                                  pet.price
-                                )}
-                              </strong>
-                            </div>
-
-                            <a
-
-
-                              href={`/pets/${encodeURIComponent(String(pet.id))}`}
-
-
-                              className="details-button"
-
-
-                            >
-
-
-                              View Details →
-
-
-                            </a>
-
-
-
-                            <button type="button" className="interest-button"
-                              onClick={() =>
-                                choosePet(
-                                  pet
-                                )
-                              }
-                            >
-                              I&apos;m Interested →
-                            </button>
-
-                          </div>
-
+                          <button
+                            type="button"
+                            className="interest-button"
+                            onClick={() => choosePet(pet)}
+                          >
+                            {isAvailable(pet)
+                              ? "I'm Interested →"
+                              : "Pre-Order →"}
+                          </button>
                         </div>
-
                       </article>
-                    )
-                  )}
-
-                </div>
-              )}
+                    ))}
+                  </div>
+                </section>
+              );
+            })}
 
           </div>
 

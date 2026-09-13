@@ -4122,3 +4122,147 @@ section {
     font-size: 11px;
   }
 }
+
+
+/* PETORA CATEGORY ROW MARKETPLACE */
+.petora-category-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 10px 0 20px;
+}
+
+.petora-category-row {
+  display: grid;
+  grid-template-columns: 210px minmax(0, 1fr);
+  gap: 16px;
+  align-items: stretch;
+  margin: 0 0 18px;
+}
+
+.petora-category-intro {
+  background: linear-gradient(135deg, #f5f1e6, #ffffff);
+  border: 1px solid rgba(12, 91, 72, 0.10);
+  border-radius: 18px;
+  padding: 22px 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.petora-category-icon {
+  font-size: 30px;
+  margin-bottom: 8px;
+}
+
+.petora-category-intro h3 {
+  margin: 4px 0 6px;
+  font-size: 27px;
+  color: #075b48;
+}
+
+.petora-category-intro p {
+  margin: 0;
+  color: rgba(18, 47, 42, 0.68);
+  line-height: 1.45;
+  font-size: 14px;
+}
+
+.petora-category-strip {
+  display: flex;
+  gap: 12px;
+  min-width: 0;
+  overflow-x: auto;
+  padding: 2px 2px 8px;
+  scrollbar-width: thin;
+}
+
+.petora-mini-card {
+  flex: 0 0 205px;
+  background: #fff;
+  border: 1px solid rgba(12, 91, 72, 0.10);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(20, 50, 42, 0.07);
+}
+
+.petora-mini-image-wrap {
+  position: relative;
+  height: 150px;
+  background: #eef2ed;
+  overflow: hidden;
+}
+
+.petora-mini-image {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.petora-mini-image-wrap .pet-status {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  z-index: 2;
+}
+
+.pet-status-preorder {
+  background: #f3ead0 !important;
+  color: #795f1c !important;
+}
+
+.petora-mini-body {
+  padding: 13px;
+}
+
+.petora-mini-body h3 {
+  margin: 4px 0 3px;
+  font-size: 18px;
+  line-height: 1.15;
+  color: #075b48;
+}
+
+.petora-mini-body .pet-name {
+  margin-bottom: 9px;
+}
+
+.petora-mini-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  color: rgba(18, 47, 42, 0.62);
+  margin-bottom: 8px;
+}
+
+.petora-mini-price {
+  display: block;
+  font-size: 19px;
+  color: #075b48;
+  margin-bottom: 10px;
+}
+
+.petora-mini-body .interest-button {
+  width: 100%;
+  min-height: 38px;
+  font-size: 12px;
+}
+
+@media (max-width: 900px) {
+  .petora-category-row {
+    grid-template-columns: 1fr;
+  }
+
+  .petora-category-intro {
+    padding: 16px;
+  }
+
+  .petora-category-intro h3 {
+    font-size: 24px;
+  }
+
+  .petora-category-strip {
+    margin-right: -4px;
+  }
+}
