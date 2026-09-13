@@ -1903,6 +1903,29 @@ export default function Home() {
               </div>
             )}
 
+            <label className="privacy-consent">
+
+              <input
+
+                type="checkbox"
+
+                name="privacyConsent"
+
+                required
+
+              />
+
+              <span>
+
+                I agree that PETORA may use my information to respond to my enquiry. 
+
+                <a href="/privacy">Privacy Policy</a>
+
+              </span>
+
+            </label>
+
+
             <button
               type="submit"
               className="primary-button form-submit"

@@ -4082,3 +4082,43 @@ section {
     flex-wrap: wrap;
   }
 }
+
+/* ================================
+   ENQUIRY PRIVACY CONSENT
+   ================================ */
+
+.privacy-consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 4px 0 14px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #61706a;
+  cursor: pointer;
+}
+
+.privacy-consent input {
+  width: 16px;
+  height: 16px;
+  margin: 1px 0 0;
+  flex: 0 0 auto;
+  accent-color: #07513f;
+}
+
+.privacy-consent a {
+  color: #07513f;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.privacy-consent a:hover {
+  color: #b18324;
+}
+
+@media (max-width: 700px) {
+  .privacy-consent {
+    font-size: 11px;
+  }
+}
