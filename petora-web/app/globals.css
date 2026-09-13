@@ -4266,3 +4266,198 @@ section {
     margin-right: -4px;
   }
 }
+
+
+/* PETORA DEDICATED CATEGORY PAGES */
+.category-page {
+  min-height: 100vh;
+  padding: 32px 24px 70px;
+  background:
+    radial-gradient(circle at top right, rgba(214, 177, 90, .12), transparent 28%),
+    linear-gradient(180deg, #f5f3e9 0%, #eef4ef 100%);
+}
+
+.category-page-inner {
+  max-width: 1380px;
+  margin: 0 auto;
+}
+
+.category-page-top {
+  margin-bottom: 22px;
+}
+
+.category-back-link {
+  color: #075b48;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.category-page-heading {
+  position: relative;
+  padding: 30px 34px;
+  margin-bottom: 24px;
+  border-radius: 26px;
+  background: rgba(255,255,255,.92);
+  border: 1px solid rgba(7,91,72,.08);
+  box-shadow: 0 16px 40px rgba(20,50,42,.07);
+}
+
+.category-page-heading h1 {
+  margin: 6px 0 8px;
+  font-size: clamp(42px, 6vw, 72px);
+  color: #075b48;
+  line-height: .98;
+}
+
+.category-page-heading p {
+  margin: 0;
+  max-width: 680px;
+  color: rgba(18,47,42,.68);
+  font-size: 17px;
+}
+
+.category-page-count {
+  position: absolute;
+  top: 28px;
+  right: 30px;
+  padding: 10px 15px;
+  border-radius: 999px;
+  background: #eaf5ec;
+  color: #075b48;
+  font-weight: 800;
+  font-size: 13px;
+}
+
+.category-page-state {
+  padding: 55px 24px;
+  text-align: center;
+  border-radius: 22px;
+  background: #fff;
+  color: rgba(18,47,42,.72);
+}
+
+.category-products-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.category-product-card {
+  overflow: hidden;
+  border-radius: 20px;
+  background: #fff;
+  border: 1px solid rgba(7,91,72,.09);
+  box-shadow: 0 12px 30px rgba(20,50,42,.08);
+}
+
+.category-product-image-wrap {
+  position: relative;
+  height: 240px;
+  overflow: hidden;
+  background: #edf2ed;
+}
+
+.category-product-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  image-rendering: auto;
+}
+
+.category-product-status {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: #eef8f0;
+  color: #08744f;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.category-product-status.preorder {
+  background: #f4ecd7;
+  color: #7b641f;
+}
+
+.category-product-body {
+  padding: 17px;
+}
+
+.category-product-body h2 {
+  margin: 5px 0 4px;
+  color: #075b48;
+  font-size: 23px;
+}
+
+.category-product-breed {
+  margin: 0 0 12px;
+  color: rgba(18,47,42,.64);
+  font-size: 13px;
+}
+
+.category-product-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+  color: rgba(18,47,42,.62);
+  font-size: 12px;
+}
+
+.category-product-price {
+  display: block;
+  margin-bottom: 13px;
+  color: #075b48;
+  font-size: 23px;
+}
+
+.category-product-button {
+  display: block;
+  text-align: center;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #075b48;
+  color: white;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+@media (max-width: 1100px) {
+  .category-products-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 800px) {
+  .category-products-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .category-page-heading {
+    padding: 24px;
+  }
+
+  .category-page-count {
+    position: static;
+    display: inline-block;
+    margin-top: 18px;
+  }
+}
+
+@media (max-width: 540px) {
+  .category-products-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .category-page {
+    padding: 20px 14px 50px;
+  }
+
+  .category-product-image-wrap {
+    height: 280px;
+  }
+}
