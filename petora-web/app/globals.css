@@ -4028,3 +4028,57 @@ section {
   }
 }
 
+
+/* ================================
+   LEGAL + WHATSAPP LINK POLISH
+   ================================ */
+
+.footer-legal-links {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 13px;
+}
+
+.footer-legal-links a {
+  color: rgba(255, 255, 255, 0.82);
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.2s ease, opacity 0.2s ease;
+}
+
+.footer-legal-links a:hover {
+  color: #d6b15a;
+  text-decoration: none;
+}
+
+.footer-legal-links span {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.contact-whatsapp {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #ffffff !important;
+  font-size: 16px;
+  font-weight: 600;
+  text-decoration: none !important;
+  line-height: 1.4;
+  transition: color 0.2s ease, opacity 0.2s ease;
+}
+
+.contact-whatsapp:hover {
+  color: #d6b15a !important;
+  text-decoration: none !important;
+  opacity: 0.95;
+}
+
+@media (max-width: 700px) {
+  .footer-legal-links {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+}
