@@ -1074,7 +1074,7 @@ export default function Home() {
 
         <div className="petora-pet-info">
           <small>AQUATICS</small>
-          <h3>Fish</h3>
+          <h3>Aquatics</h3>
           <p>Golden Arowana & aquatic companions</p>
         </div>
 
