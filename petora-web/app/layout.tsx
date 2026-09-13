@@ -3,9 +3,8 @@ import Script from "next/script";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "PETORA™ | Pets Beyond Borders",
-  description:
-    "Discover available pets, explore pet categories, check live listings, and connect with PETORA for enquiries and guidance.",
+  title: "PETORA™ | Pets Beyond Borders | Pet Listings in Patna",
+  description: "Discover available pets, pet listings, dogs, cats, aquatics and more with PETORA™ — Pets Beyond Borders. Explore listings and connect with PETORA in Patna.",
   keywords: [
     "PETORA",
     "Pets Beyond Borders",
@@ -21,6 +20,9 @@ export const metadata: Metadata = {
   creator: "PETORA",
   publisher: "PETORA",
   metadataBase: new URL("https://petora-ashen.vercel.app"),
+  alternates: {
+    canonical: "/",
+  },
 
   openGraph: {
     title: "PETORA™ | Pets Beyond Borders",
@@ -69,6 +71,34 @@ export default function RootLayout({
     <html lang="en">
       <body>
         {children}
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@graph": [
+              {
+                "@type": "Organization",
+                "@id": "https://petora-ashen.vercel.app/#organization",
+                "name": "PETORA™",
+                "url": "https://petora-ashen.vercel.app",
+                "logo": "https://petora-ashen.vercel.app/petora-logo.png",
+                "description": "PETORA™ — Pets Beyond Borders. Discover pet listings, explore pet categories, and connect with PETORA."
+              },
+              {
+                "@type": "WebSite",
+                "@id": "https://petora-ashen.vercel.app/#website",
+                "url": "https://petora-ashen.vercel.app",
+                "name": "PETORA™ | Pets Beyond Borders",
+                "publisher": {
+                  "@id": "https://petora-ashen.vercel.app/#organization"
+                }
+              }
+            ]
+          })
+        }}
+      />
 
         <Script
           strategy="afterInteractive"
