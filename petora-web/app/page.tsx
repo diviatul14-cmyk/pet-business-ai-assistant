@@ -1074,7 +1074,7 @@ export default function Home() {
 
         <div className="petora-pet-info">
           <small>AQUATICS</small>
-          <h3>Aquatics</h3>
+          <h3>Fish</h3>
           <p>Golden Arowana & aquatic companions</p>
         </div>
 
@@ -1261,6 +1261,404 @@ export default function Home() {
 
 
 
+      {/* =========================
+          MARKETPLACE
+      ========================= */}
+      <section
+        id="pets"
+        className="marketplace-section"
+      >
+
+        <div className="marketplace-heading">
+
+          <div>
+            <span className="eyebrow">
+              AVAILABLE PETS
+            </span>
+
+            <h2>
+              Find Your New Best Friend
+            </h2>
+
+            <p>
+              Browse current PETORA listings.
+            </p>
+          </div>
+
+          <div className="availability-badge">
+            {availablePets.length} Available
+          </div>
+
+        </div>
+
+        <div className="marketplace-layout">
+
+          {/* =====================
+              LEFT MARKETPLACE
+          ====================== */}
+          <div className="marketplace-main">
+
+            <div className="search-row">
+
+              <div className="search-box">
+
+                <span>
+                  ⌕
+                </span>
+
+                <input
+                  value={search}
+                  onChange={(event) =>
+                    setSearch(
+                      event.target.value
+                    )
+                  }
+                  placeholder="Search breed, pet ID or location..."
+                />
+
+                {search && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setSearch("")
+                    }
+                  >
+                    Clear
+                  </button>
+                )}
+
+              </div>
+
+            </div>
+
+            <div className="filter-row">
+
+              <button
+                type="button"
+                className={
+                  category ===
+                  "All"
+                    ? "filter-button active"
+                    : "filter-button"
+                }
+                onClick={() =>
+                  setCategory(
+                    "All"
+                  )
+                }
+              >
+                All Pets
+              </button>
+
+              <button
+                type="button"
+                className={
+                  category ===
+                  "Dogs"
+                    ? "filter-button active"
+                    : "filter-button"
+                }
+                onClick={() =>
+                  setCategory(
+                    "Dogs"
+                  )
+                }
+              >
+                Dogs
+              </button>
+
+            </div>
+
+            {loading && (
+              <div className="inventory-state">
+
+                <div className="loading-spinner" />
+
+                <h3>
+                  Loading PETORA inventory...
+                </h3>
+
+                <p>
+                  Checking current listings.
+                </p>
+
+              </div>
+            )}
+
+            {!loading &&
+              inventoryError && (
+                <div className="inventory-state error-state">
+
+                  <h3>
+                    Inventory unavailable
+                  </h3>
+
+                  <p>
+                    {inventoryError}
+                  </p>
+
+                </div>
+              )}
+
+            {!loading &&
+              !inventoryError &&
+              filteredPets.length ===
+                0 && (
+                <div className="inventory-state">
+
+                  <div className="empty-paw">
+                    <span />
+                    <span />
+                  </div>
+
+                  <h3>
+                    No matching pets found
+                  </h3>
+
+                  <p>
+                    Try another breed,
+                    pet ID or location.
+                  </p>
+
+                </div>
+              )}
+
+            {!loading &&
+              !inventoryError &&
+              filteredPets.length >
+                0 && (
+                <div className="pet-grid">
+
+                  {filteredPets.map(
+                    (pet) => (
+                      <article
+                        key={pet.id}
+                        className="pet-card"
+                      >
+
+                        {/* REAL IMAGE */}
+                        <div className="pet-image-wrap">
+
+                          <img
+                            src={pet.image}
+                            alt={`${pet.name} - ${pet.breed}`}
+                            className="pet-image"
+                          />
+
+                          <span className="pet-status">
+                            ✓ Available
+                          </span>
+
+                        </div>
+
+                        <div className="pet-card-body">
+
+                          <span className="pet-category">
+                            {pet.category}
+                          </span>
+
+                          <h3>
+                            {pet.breed}
+                          </h3>
+
+                          <p className="pet-name">
+                            {pet.name}
+                            {" · "}
+                            {pet.id}
+                          </p>
+
+                          <div className="pet-details">
+
+                            {pet.gender && (
+                              <span>
+                                <b>
+                                  Gender
+                                </b>
+                                {pet.gender}
+                              </span>
+                            )}
+
+                            {pet.age && (
+                              <span>
+                                <b>
+                                  Age
+                                </b>
+                                {pet.age}
+                              </span>
+                            )}
+
+                            {pet.location && (
+                              <span>
+                                <b>
+                                  Location
+                                </b>
+                                {pet.location}
+                              </span>
+                            )}
+
+                            {pet.vaccinated && (
+                              <span>
+                                <b>
+                                  Vaccinated
+                                </b>
+                                {pet.vaccinated}
+                              </span>
+                            )}
+
+                          </div>
+
+                          <div className="pet-card-footer">
+
+                            <div>
+                              <small>
+                                Price
+                              </small>
+
+                              <strong>
+                                {money(
+                                  pet.price
+                                )}
+                              </strong>
+                            </div>
+
+                            <a
+
+
+                              href={`/pets/${encodeURIComponent(String(pet.id))}`}
+
+
+                              className="details-button"
+
+
+                            >
+
+
+                              View Details →
+
+
+                            </a>
+
+
+
+                            <button type="button" className="interest-button"
+                              onClick={() =>
+                                choosePet(
+                                  pet
+                                )
+                              }
+                            >
+                              I&apos;m Interested →
+                            </button>
+
+                          </div>
+
+                        </div>
+
+                      </article>
+                    )
+                  )}
+
+                </div>
+              )}
+
+          </div>
+
+          {/* =====================
+              AI PANEL
+          ====================== */}
+          <aside
+            id="ai"
+            className="ai-panel"
+          >
+
+            <div className="ai-header">
+
+              <div className="ai-avatar">
+                ✦
+              </div>
+
+              <div>
+                <strong>
+                  PETORA AI Assistant
+                </strong>
+
+                <span>
+                  Ask about pets, prices,
+                  availability or care.
+                </span>
+              </div>
+
+            </div>
+
+            <div className="ai-conversation">
+
+              <div className="ai-user-message">
+                Which dog breeds are available?
+              </div>
+
+              <div className="ai-message">
+                {aiAnswer}
+              </div>
+
+              <div className="ai-user-message">
+                What is the price of ST001?
+              </div>
+
+              <div className="ai-message">
+                {(() => {
+                  const pet =
+                    availablePets.find(
+                      (item) =>
+                        item.id
+                          .toLowerCase() ===
+                        "st001"
+                    );
+
+                  return pet
+                    ? `${pet.id} – ${pet.name}. ${pet.breed}. ${money(
+                        pet.price
+                      )}.`
+                    : "ST001 is not currently available.";
+                })()}
+              </div>
+
+            </div>
+
+            <div className="ai-input-row">
+
+              <input
+                value={aiQuestion}
+                onChange={(event) =>
+                  setAiQuestion(
+                    event.target.value
+                  )
+                }
+                onKeyDown={(event) => {
+                  if (
+                    event.key ===
+                    "Enter"
+                  ) {
+                    askAI();
+                  }
+                }}
+                placeholder="Ask PETORA AI..."
+              />
+
+              <button
+                type="button"
+                onClick={
+                  askAI
+                }
+              >
+                ↑
+              </button>
+
+            </div>
+
+          </aside>
+
+        </div>
+      </section>
 
       {/* =========================
           TRUST STRIP
