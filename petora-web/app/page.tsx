@@ -208,14 +208,9 @@ function normalizePet(pet: ApiPet): Pet {
 }
 
 function isAvailable(pet: Pet): boolean {
-  const status =
-    pet.status.toLowerCase();
+  const status = pet.status.trim().toLowerCase();
 
-  return (
-    status !== "sold" &&
-    status !== "unavailable" &&
-    status !== "out of stock"
-  );
+  return status === "available";
 }
 
 function money(value: string): string {
