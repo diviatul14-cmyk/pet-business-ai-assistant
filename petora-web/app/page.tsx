@@ -1262,6 +1262,106 @@ export default function Home() {
 
 
       {/* =========================
+          PRE-ORDER COLLECTION
+      ========================= */}
+      {photographedPets.some(
+        (pet) =>
+          pet.status.trim().toLowerCase() ===
+          "pre-order / verify stock"
+      ) && (
+        <section className="marketplace-section petora-preorder-section">
+          <div className="marketplace-heading">
+            <div>
+              <span className="eyebrow">PETORA PRE-ORDER</span>
+              <h2>Premium Pets & Aquatics</h2>
+              <p>
+                Browse our upcoming cats, marine fish and Arowana collection.
+              </p>
+            </div>
+
+            <div className="availability-badge">
+              {
+                photographedPets.filter(
+                  (pet) =>
+                    pet.status.trim().toLowerCase() ===
+                    "pre-order / verify stock"
+                ).length
+              } Pre-Order
+            </div>
+          </div>
+
+          <div className="pet-grid">
+            {photographedPets
+              .filter(
+                (pet) =>
+                  pet.status.trim().toLowerCase() ===
+                  "pre-order / verify stock"
+              )
+              .map((pet) => (
+                <article
+                  key={pet.id}
+                  className="pet-card"
+                >
+                  <div className="pet-image-wrap">
+                    <img
+                      src={pet.image}
+                      alt={`${pet.name} - ${pet.breed}`}
+                      className="pet-image"
+                    />
+                    <span className="pet-status">
+                      PRE-ORDER
+                    </span>
+                  </div>
+
+                  <div className="pet-card-body">
+                    <span className="pet-category">
+                      {pet.category}
+                    </span>
+
+                    <h3>{pet.breed}</h3>
+
+                    <p className="pet-name">
+                      {pet.name} · {pet.id}
+                    </p>
+
+                    <div className="pet-details">
+                      {pet.age && (
+                        <span>
+                          <b>Age</b>
+                          {pet.age}
+                        </span>
+                      )}
+
+                      {pet.location && (
+                        <span>
+                          <b>Location</b>
+                          {pet.location}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="pet-card-footer">
+                      <div>
+                        <small>Price</small>
+                        <strong>{money(pet.price)}</strong>
+                      </div>
+
+                      <button
+                        type="button"
+                        className="interest-button"
+                        onClick={() => choosePet(pet)}
+                      >
+                        Pre-Order →
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              ))}
+          </div>
+        </section>
+      )}
+
+      {/* =========================
           MARKETPLACE
       ========================= */}
       <section
