@@ -2116,6 +2116,13 @@ export default function Home() {
             Different Pets. Same Love.
           </span>
 
+          <a
+            href="/privacy"
+            className="footer-privacy-link"
+          >
+            Privacy Policy
+          </a>
+
         </div>
 
       </footer>
