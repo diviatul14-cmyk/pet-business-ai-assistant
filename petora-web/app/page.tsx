@@ -868,7 +868,7 @@ export default function Home() {
           <button
             type="button"
             onClick={() =>
-              goTo("categories")
+              setCategory("Dogs")
             }
           >
             Categories
@@ -937,7 +937,7 @@ export default function Home() {
               type="button"
               className="secondary-button"
               onClick={() =>
-                goTo("categories")
+                setCategory("Dogs")
               }
             >
               Explore Categories
@@ -1264,7 +1264,8 @@ export default function Home() {
       {/* =========================
           MARKETPLACE
       ========================= */}
-      <section
+      {category !== "All" && (
+<section
         id="pets"
         className="marketplace-section"
       >
@@ -1659,6 +1660,7 @@ export default function Home() {
 
         </div>
       </section>
+)}
 
       {/* =========================
           TRUST STRIP
