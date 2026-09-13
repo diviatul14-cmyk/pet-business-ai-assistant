@@ -1526,9 +1526,26 @@ export default function Home() {
                               </strong>
                             </div>
 
-                            <button
-                              type="button"
-                              className="interest-button"
+                            <a
+
+
+                              href={`/pets/${encodeURIComponent(String(pet.id))}`}
+
+
+                              className="details-button"
+
+
+                            >
+
+
+                              View Details →
+
+
+                            </a>
+
+
+
+                            <button type="button" className="interest-button"
                               onClick={() =>
                                 choosePet(
                                   pet
