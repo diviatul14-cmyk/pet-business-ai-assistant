@@ -29,16 +29,25 @@ function clean(value: unknown): string {
 
 function imagePath(value: unknown): string {
   const raw = clean(value);
+
   if (!raw) return "";
-  if (raw.startsWith("http://") || raw.startsWith("https://")) return raw;
+
+  if (raw.startsWith("http://") || raw.startsWith("https://")) {
+    return raw;
+  }
 
   const fileName = raw.split("/").pop() ?? "";
+
   return fileName ? `/${fileName}` : "";
 }
 
 function money(value: string): string {
   const numeric = Number(value.replace(/[₹,$,\s]/g, ""));
-  if (!Number.isFinite(numeric)) return value || "Price on enquiry";
+
+  if (!Number.isFinite(numeric)) {
+    return value || "Price on enquiry";
+  }
+
   return `₹${numeric.toLocaleString("en-IN")}`;
 }
 
@@ -46,23 +55,40 @@ function isAvailable(status: string): boolean {
   return status.trim().toLowerCase() === "available";
 }
 
-export default function CategoryPage({
-  params,
-}: {
-  params: { category: string };
-}) {
-  const requested = clean(params.category).toLowerCase();
-  const categoryName = CATEGORY_MAP[requested] || "";
-
+export default function CategoryPage() {
+  const [requested, setRequested] = useState("");
   const [pets, setPets] = useState<Pet[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  /*
+   * Read the category directly from the browser URL.
+   *
+   * Example:
+   * /category/dogs
+   *              ↑
+   *           requested
+   */
+  useEffect(() => {
+    const parts = window.location.pathname
+      .split("/")
+      .filter(Boolean);
+
+    const category = parts[parts.length - 1] || "";
+
+    setRequested(clean(category).toLowerCase());
+  }, []);
+
+  const categoryName = CATEGORY_MAP[requested] || "";
 
   useEffect(() => {
     let cancelled = false;
 
     async function load() {
       try {
+        setLoading(true);
+        setError("");
+
         const response = await fetch("/api/pets", {
           cache: "no-store",
         });
@@ -73,19 +99,43 @@ export default function CategoryPage({
 
         const data = await response.json();
 
-        const normalized = Array.isArray(data)
+        const normalized: Pet[] = Array.isArray(data)
           ? data.map((item: any) => ({
-              id: clean(item?.id ?? item?.pet_id ?? item?.puppy_id),
+              id: clean(
+                item?.id ??
+                  item?.pet_id ??
+                  item?.puppy_id
+              ),
+
               category: clean(item?.category),
+
               breed: clean(item?.breed),
-              name: clean(item?.name) || clean(item?.breed),
+
+              name:
+                clean(item?.name) ||
+                clean(item?.breed),
+
               gender: clean(item?.gender),
-              age: clean(item?.age ?? item?.age_weeks),
+
+              age: clean(
+                item?.age ??
+                  item?.age_weeks
+              ),
+
               price: clean(item?.price),
+
               status: clean(item?.status),
+
               location: clean(item?.location),
-              image: imagePath(item?.image ?? item?.photo),
-              description: clean(item?.description),
+
+              image: imagePath(
+                item?.image ??
+                  item?.photo
+              ),
+
+              description: clean(
+                item?.description
+              ),
             }))
           : [];
 
@@ -93,9 +143,14 @@ export default function CategoryPage({
           setPets(normalized);
           setLoading(false);
         }
-      } catch {
+      } catch (err) {
+        console.error("PETORA category error:", err);
+
         if (!cancelled) {
-          setError("Unable to load this PETORA category right now.");
+          setError(
+            "Unable to load this PETORA category right now."
+          );
+
           setLoading(false);
         }
       }
@@ -108,26 +163,64 @@ export default function CategoryPage({
     };
   }, []);
 
-  const categoryPets = useMemo(
-    () =>
-      pets.filter(
-        (pet) =>
-          pet.category.toLowerCase() === categoryName.toLowerCase() &&
-          Boolean(pet.image)
-      ),
-    [pets, categoryName]
-  );
+  const categoryPets = useMemo(() => {
+    if (!categoryName) {
+      return [];
+    }
 
-  if (!categoryName) {
+    return pets.filter((pet) => {
+      const petCategory = clean(
+        pet.category
+      ).toLowerCase();
+
+      const wantedCategory =
+        categoryName.toLowerCase();
+
+      return (
+        petCategory === wantedCategory &&
+        Boolean(pet.image)
+      );
+    });
+  }, [pets, categoryName]);
+
+  /*
+   * Unknown category
+   */
+  if (requested && !categoryName) {
     return (
       <main className="category-page">
         <div className="category-page-inner">
-          <span className="eyebrow">PETORA</span>
+          <span className="eyebrow">
+            PETORA
+          </span>
+
           <h1>Category not found</h1>
-          <p>Please return to the PETORA home page.</p>
-          <Link href="/" className="primary-button">
+
+          <p>
+            Please return to the PETORA home page.
+          </p>
+
+          <Link
+            href="/"
+            className="primary-button"
+          >
             Back to PETORA →
           </Link>
+        </div>
+      </main>
+    );
+  }
+
+  /*
+   * Initial URL/category resolution
+   */
+  if (!requested) {
+    return (
+      <main className="category-page">
+        <div className="category-page-inner">
+          <div className="category-page-state">
+            Loading PETORA category...
+          </div>
         </div>
       </main>
     );
@@ -136,19 +229,26 @@ export default function CategoryPage({
   return (
     <main className="category-page">
       <div className="category-page-inner">
+
+        {/* BACK LINK */}
         <div className="category-page-top">
-          <Link href="/" className="category-back-link">
+          <Link
+            href="/"
+            className="category-back-link"
+          >
             ← PETORA Home
           </Link>
         </div>
 
+        {/* HEADER */}
         <header className="category-page-heading">
+
           <span className="eyebrow">
             {categoryName === "Dogs"
               ? "DOGS • COMPANIONS"
               : categoryName === "Cats"
-                ? "CATS • FELINE FRIENDS"
-                : "AQUATICS • FISH & AROWANA"}
+              ? "CATS • FELINE FRIENDS"
+              : "AQUATICS • FISH & AROWANA"}
           </span>
 
           <h1>{categoryName}</h1>
@@ -157,86 +257,143 @@ export default function CategoryPage({
             {categoryName === "Dogs"
               ? "Discover PETORA dog companions."
               : categoryName === "Cats"
-                ? "Discover PETORA cat companions."
-                : "Explore marine fish, freshwater fish and premium Arowana."}
+              ? "Discover PETORA cat companions."
+              : "Explore marine fish, freshwater fish and premium Arowana."}
           </p>
 
           <div className="category-page-count">
-            {categoryPets.length} listings
+            {loading
+              ? "Loading listings..."
+              : `${categoryPets.length} listings`}
           </div>
+
         </header>
 
+        {/* LOADING */}
         {loading && (
           <div className="category-page-state">
             Loading PETORA listings...
           </div>
         )}
 
+        {/* ERROR */}
         {!loading && error && (
           <div className="category-page-state">
             {error}
           </div>
         )}
 
-        {!loading && !error && categoryPets.length === 0 && (
-          <div className="category-page-state">
-            No photographed listings are available in this category yet.
-          </div>
-        )}
+        {/* EMPTY */}
+        {!loading &&
+          !error &&
+          categoryPets.length === 0 && (
+            <div className="category-page-state">
+              No photographed listings are available
+              in this category yet.
+            </div>
+          )}
 
-        {!loading && !error && categoryPets.length > 0 && (
-          <div className="category-products-grid">
-            {categoryPets.map((pet) => (
-              <article key={pet.id} className="category-product-card">
-                <div className="category-product-image-wrap">
-                  <img
-                    src={pet.image}
-                    alt={`${pet.name} - ${pet.breed}`}
-                    className="category-product-image"
-                  />
+        {/* PRODUCTS */}
+        {!loading &&
+          !error &&
+          categoryPets.length > 0 && (
+            <div className="category-products-grid">
 
-                  <span
-                    className={
-                      isAvailable(pet.status)
-                        ? "category-product-status available"
-                        : "category-product-status preorder"
-                    }
-                  >
-                    {isAvailable(pet.status) ? "✓ Available" : "PRE-ORDER"}
-                  </span>
-                </div>
+              {categoryPets.map((pet) => (
+                <article
+                  key={
+                    pet.id ||
+                    `${pet.name}-${pet.breed}`
+                  }
+                  className="category-product-card"
+                >
 
-                <div className="category-product-body">
-                  <span className="pet-category">
-                    {pet.category}
-                  </span>
+                  {/* IMAGE */}
+                  <div className="category-product-image-wrap">
 
-                  <h2>{pet.name}</h2>
+                    <img
+                      src={pet.image}
+                      alt={`${pet.name} - ${pet.breed}`}
+                      className="category-product-image"
+                    />
 
-                  <p className="category-product-breed">
-                    {pet.breed} · {pet.id}
-                  </p>
+                    <span
+                      className={
+                        isAvailable(pet.status)
+                          ? "category-product-status available"
+                          : "category-product-status preorder"
+                      }
+                    >
+                      {isAvailable(
+                        pet.status
+                      )
+                        ? "✓ Available"
+                        : "PRE-ORDER"}
+                    </span>
 
-                  <div className="category-product-meta">
-                    {pet.age && <span>{pet.age}</span>}
-                    {pet.location && <span>{pet.location}</span>}
                   </div>
 
-                  <strong className="category-product-price">
-                    {money(pet.price)}
-                  </strong>
+                  {/* PRODUCT INFORMATION */}
+                  <div className="category-product-body">
 
-                  <Link
-                    href={`/pets/${pet.id}`}
-                    className="category-product-button"
-                  >
-                    View Details →
-                  </Link>
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
+                    <span className="pet-category">
+                      {pet.category}
+                    </span>
+
+                    <h2>
+                      {pet.name}
+                    </h2>
+
+                    <p className="category-product-breed">
+                      {pet.breed}
+                      {pet.id
+                        ? ` · ${pet.id}`
+                        : ""}
+                    </p>
+
+                    <div className="category-product-meta">
+
+                      {pet.age && (
+                        <span>
+                          {pet.age}
+                        </span>
+                      )}
+
+                      {pet.gender && (
+                        <span>
+                          {pet.gender}
+                        </span>
+                      )}
+
+                      {pet.location && (
+                        <span>
+                          {pet.location}
+                        </span>
+                      )}
+
+                    </div>
+
+                    <strong className="category-product-price">
+                      {money(pet.price)}
+                    </strong>
+
+                    <Link
+                      href={`/pets/${encodeURIComponent(
+                        pet.id
+                      )}`}
+                      className="category-product-button"
+                    >
+                      View Details →
+                    </Link>
+
+                  </div>
+
+                </article>
+              ))}
+
+            </div>
+          )}
+
       </div>
     </main>
   );
