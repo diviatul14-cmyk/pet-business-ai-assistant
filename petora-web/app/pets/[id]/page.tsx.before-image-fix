@@ -1,0 +1,279 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+
+type Pet = {
+  id?: string;
+  puppy_id?: string;
+  category?: string;
+  species?: string;
+  breed?: string;
+  name?: string;
+  gender?: string;
+  age?: string;
+  age_weeks?: string | number;
+  price?: string | number;
+  status?: string;
+  vaccinated?: string;
+  location?: string;
+  image?: string;
+  photo?: string;
+  description?: string;
+};
+
+const SITE_URL = "https://petora-ashen.vercel.app";
+
+async function getPets(): Promise<Pet[]> {
+  const response = await fetch(`${SITE_URL}/api/pets`, {
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error("Unable to load PETORA inventory");
+  }
+
+  return response.json();
+}
+
+async function getPet(id: string) {
+  const pets = await getPets();
+
+  return pets.find(
+    (pet) =>
+      String(pet.id || pet.puppy_id || "").toLowerCase() === id.toLowerCase()
+  );
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const pet = await getPet(id);
+
+  if (!pet) {
+    return {
+      title: "Pet Not Found | PETORA™",
+      description: "This PETORA pet listing could not be found.",
+    };
+  }
+
+  const name = pet.name || pet.breed || "Pet";
+  const breed = pet.breed || pet.species || "Pet";
+  const location = pet.location || "India";
+
+  return {
+    title: `${name} - ${breed} | PETORA™`,
+    description: `View the PETORA listing for ${name}, ${breed} in ${location}. Check availability, age, vaccination information, price and enquiry options.`,
+    alternates: {
+      canonical: `/pets/${encodeURIComponent(
+        String(pet.id || pet.puppy_id || id)
+      )}`,
+    },
+    openGraph: {
+      title: `${name} - ${breed} | PETORA™`,
+      description: `Explore the ${name} ${breed} listing on PETORA™.`,
+      url: `${SITE_URL}/pets/${encodeURIComponent(
+        String(pet.id || pet.puppy_id || id)
+      )}`,
+      siteName: "PETORA™",
+      type: "website",
+      images: pet.image
+        ? [
+            {
+              url: pet.image.startsWith("http")
+                ? pet.image
+                : `${SITE_URL}${pet.image.startsWith("/") ? "" : "/"}${pet.image}`,
+              alt: `${name} - ${breed}`,
+            },
+          ]
+        : undefined,
+    },
+  };
+}
+
+export default async function PetDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const pet = await getPet(id);
+
+  if (!pet) {
+    return (
+      <main
+        style={{
+          minHeight: "100vh",
+          padding: "80px 24px",
+          background: "#f5f7f2",
+          color: "#07513f",
+        }}
+      >
+        <div
+          style={{
+            maxWidth: "900px",
+            margin: "0 auto",
+            background: "#fff",
+            borderRadius: "28px",
+            padding: "48px",
+          }}
+        >
+          <h1>Pet not found</h1>
+          <p>This listing is no longer available.</p>
+          <Link href="/">Back to PETORA</Link>
+        </div>
+      </main>
+    );
+  }
+
+  const name = pet.name || pet.breed || "PETORA Pet";
+  const breed = pet.breed || pet.species || "Pet";
+  const price = pet.price ? String(pet.price) : "Contact PETORA";
+  const image = pet.image || pet.photo || "";
+
+  return (
+    <main
+      style={{
+        minHeight: "100vh",
+        padding: "40px 24px 80px",
+        background: "#f5f7f2",
+        color: "#07513f",
+      }}
+    >
+      <div
+        style={{
+          maxWidth: "1100px",
+          margin: "0 auto",
+        }}
+      >
+        <Link
+          href="/"
+          style={{
+            display: "inline-block",
+            marginBottom: "24px",
+            color: "#07513f",
+            fontWeight: 700,
+            textDecoration: "none",
+          }}
+        >
+          ← Back to PETORA
+        </Link>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: "36px",
+            background: "#fff",
+            borderRadius: "28px",
+            padding: "28px",
+          }}
+        >
+          <div>
+            {image ? (
+              <img
+                src={image.startsWith("/") ? image : `/${image}`}
+                alt={`${name} - ${breed}`}
+                style={{
+                  width: "100%",
+                  aspectRatio: "1 / 1",
+                  objectFit: "cover",
+                  borderRadius: "22px",
+                }}
+              />
+            ) : (
+              <div
+                style={{
+                  width: "100%",
+                  aspectRatio: "1 / 1",
+                  borderRadius: "22px",
+                  background: "#e9eee8",
+                  display: "grid",
+                  placeItems: "center",
+                }}
+              >
+                No photo available
+              </div>
+            )}
+          </div>
+
+          <div style={{ padding: "16px 8px" }}>
+            <p
+              style={{
+                color: "#b18324",
+                fontSize: "12px",
+                fontWeight: 800,
+                letterSpacing: "0.16em",
+                textTransform: "uppercase",
+              }}
+            >
+              PETORA LISTING
+            </p>
+
+            <h1
+              style={{
+                fontSize: "52px",
+                lineHeight: 1,
+                margin: "12px 0 10px",
+              }}
+            >
+              {name}
+            </h1>
+
+            <h2
+              style={{
+                fontSize: "24px",
+                margin: "0 0 26px",
+              }}
+            >
+              {breed}
+            </h2>
+
+            <p>{pet.description || `Explore this ${breed} listing with PETORA.`}</p>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "14px",
+                margin: "28px 0",
+              }}
+            >
+              <strong>Gender: {pet.gender || "—"}</strong>
+              <strong>Age: {pet.age || pet.age_weeks || "—"}</strong>
+              <strong>Location: {pet.location || "—"}</strong>
+              <strong>Vaccinated: {pet.vaccinated || "—"}</strong>
+              <strong>Status: {pet.status || "Available"}</strong>
+            </div>
+
+            <div
+              style={{
+                fontSize: "32px",
+                fontWeight: 800,
+                marginBottom: "22px",
+              }}
+            >
+              ₹{price}
+            </div>
+
+            <Link
+              href="/#contact"
+              style={{
+                display: "inline-block",
+                padding: "15px 22px",
+                borderRadius: "12px",
+                background: "#07513f",
+                color: "#fff",
+                textDecoration: "none",
+                fontWeight: 800,
+              }}
+            >
+              I'm Interested →
+            </Link>
+          </div>
+        </div>
+      </div>
+    </main>
+  );
+}
