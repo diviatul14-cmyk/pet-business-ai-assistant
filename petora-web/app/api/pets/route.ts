@@ -56,21 +56,29 @@ function clean(value: unknown): string {
   return String(value ?? "").trim();
 }
 
-function normalizeInventory(rows: string[][]): InventoryRow[] {
+function normalizeInventory(
+  rows: string[][]
+): InventoryRow[] {
   if (!rows || rows.length === 0) {
     return [];
   }
 
   const headers = rows[0].map((header) =>
-    clean(header).toLowerCase().replace(/\s+/g, "_")
+    clean(header)
+      .toLowerCase()
+      .replace(/\s+/g, "_")
   );
 
-  const indexOf = (name: string) => headers.indexOf(name);
+  const indexOf = (name: string) =>
+    headers.indexOf(name);
 
   return rows.slice(1).map((row) => {
     const value = (column: string): string => {
       const index = indexOf(column);
-      return index >= 0 ? clean(row[index]) : "";
+
+      return index >= 0
+        ? clean(row[index])
+        : "";
     };
 
     return {
@@ -99,6 +107,7 @@ function normalizeInventory(rows: string[][]): InventoryRow[] {
 export async function GET() {
   try {
     const auth = getGoogleAuth();
+
     const sheets = google.sheets({
       version: "v4",
       auth,
@@ -106,17 +115,21 @@ export async function GET() {
 
     const spreadsheetId = getSheetId();
 
-    const response = await sheets.spreadsheets.values.get({
-      spreadsheetId,
-      range: "Inventory!A:Z",
-    });
+    const response =
+      await sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: "Inventory!A:Z",
+      });
 
     const rows = response.data.values ?? [];
-    const inventory = normalizeInventory(rows);
+
+    const inventory =
+      normalizeInventory(rows);
 
     const availablePets = inventory
       .filter((pet) => {
-        const status = pet.status.toLowerCase();
+        const status =
+          pet.status.toLowerCase();
 
         return (
           pet.pet_id &&
@@ -127,30 +140,64 @@ export async function GET() {
       .map((pet) => ({
         id: pet.pet_id,
         puppy_id: pet.pet_id,
-        category: pet.category || "Dogs",
-        species: pet.species || "Dog",
+
+        category:
+          pet.category || "Dogs",
+
+        species:
+          pet.species || "Dog",
+
         breed: pet.breed,
-        name: pet.name || pet.pet_id,
+
+        name:
+          pet.name || pet.pet_id,
+
         gender: pet.gender,
+
         age: pet.age,
-        age_weeks: pet.age.replace(/[^0-9]/g, ""),
+
+        age_weeks:
+          pet.age.replace(
+            /[^0-9]/g,
+            ""
+          ),
+
         price: pet.price,
-        status: pet.status || "Available",
-        vaccinated: pet.vaccinated,
-        location: pet.location,
-        image: pet.photo || "",
-        photo: pet.photo || "",
-        description: pet.description,
+
+        status:
+          pet.status || "Available",
+
+        vaccinated:
+          pet.vaccinated,
+
+        location:
+          pet.location,
+
+        image:
+          pet.photo || "",
+
+        photo:
+          pet.photo || "",
+
+        description:
+          pet.description,
       }));
 
-    return NextResponse.json(availablePets, {
-      status: 200,
-      headers: {
-        "Cache-Control": "no-store",
-      },
-    });
+    return NextResponse.json(
+      availablePets,
+      {
+        status: 200,
+        headers: {
+          "Cache-Control":
+            "no-store",
+        },
+      }
+    );
   } catch (error) {
-    console.error("PETORA GET inventory error:", error);
+    console.error(
+      "PETORA GET inventory error:",
+      error
+    );
 
     const details =
       error instanceof Error
@@ -159,7 +206,8 @@ export async function GET() {
 
     return NextResponse.json(
       {
-        error: "Unable to load PETORA inventory.",
+        error:
+          "Unable to load PETORA inventory.",
         details,
       },
       { status: 500 }
@@ -170,79 +218,207 @@ export async function GET() {
 /**
  * POST /api/pets
  *
- * Adds an enquiry to the live Enquiries worksheet.
+ * Adds an enquiry to the live
+ * Enquiries worksheet.
+ *
+ * The pet breed is automatically
+ * looked up from Inventory using
+ * the submitted pet ID.
  */
-export async function POST(request: Request) {
+export async function POST(
+  request: Request
+) {
   try {
-    const body = await request.json();
+    const body =
+      await request.json();
 
-    const name = clean(body?.name);
-    const phone = clean(body?.phone);
-    const petId = clean(body?.pet_id);
-    const breed = clean(body?.breed);
-    const message = clean(body?.message);
+    const name =
+      clean(body?.name);
+
+    const phone =
+      clean(body?.phone);
+
+    const petId =
+      clean(body?.pet_id);
+
+    const submittedBreed =
+      clean(body?.breed);
+
+    const message =
+      clean(body?.message);
 
     if (!name) {
       return NextResponse.json(
-        { error: "Name is required." },
+        {
+          error:
+            "Name is required.",
+        },
         { status: 400 }
       );
     }
 
     if (!phone) {
       return NextResponse.json(
-        { error: "Phone number is required." },
+        {
+          error:
+            "Phone number is required.",
+        },
         { status: 400 }
       );
     }
 
     if (!petId) {
       return NextResponse.json(
-        { error: "Pet ID is required." },
+        {
+          error:
+            "Pet ID is required.",
+        },
         { status: 400 }
       );
     }
 
-    const auth = getGoogleAuth();
+    const auth =
+      getGoogleAuth();
 
-    const sheets = google.sheets({
-      version: "v4",
-      auth,
-    });
+    const sheets =
+      google.sheets({
+        version: "v4",
+        auth,
+      });
 
-    const spreadsheetId = getSheetId();
+    const spreadsheetId =
+      getSheetId();
 
-    const now = new Date().toISOString();
+    /*
+     * Look up the selected pet
+     * directly from Inventory.
+     */
+    const inventoryResponse =
+      await sheets.spreadsheets.values.get(
+        {
+          spreadsheetId,
+          range: "Inventory!A:Z",
+        }
+      );
 
-    await sheets.spreadsheets.values.append({
-      spreadsheetId,
-      range: "Enquiries!A:G",
-      valueInputOption: "USER_ENTERED",
-      insertDataOption: "INSERT_ROWS",
-      requestBody: {
-        values: [
-          [
-            now,
-            name,
-            phone,
-            petId,
-            breed,
-            message,
-            "New",
+    const inventoryRows =
+      inventoryResponse.data.values ?? [];
+
+    const inventory =
+      normalizeInventory(
+        inventoryRows
+      );
+
+    const selectedPet =
+      inventory.find(
+        (pet) =>
+          pet.pet_id
+            .toLowerCase() ===
+          petId.toLowerCase()
+      );
+
+    /*
+     * Prefer the official breed
+     * from Inventory.
+     *
+     * If the pet cannot be found,
+     * use the breed supplied by
+     * the form as a fallback.
+     */
+    const breed =
+      selectedPet?.breed ||
+      submittedBreed;
+
+    /*
+     * Make sure the selected pet
+     * actually exists in Inventory.
+     */
+    if (!selectedPet) {
+      return NextResponse.json(
+        {
+          error:
+            "The selected PETORA listing could not be found.",
+        },
+        { status: 400 }
+      );
+    }
+
+    /*
+     * Do not allow enquiries for
+     * sold or unavailable pets.
+     */
+    const petStatus =
+      selectedPet.status
+        .trim()
+        .toLowerCase();
+
+    if (
+      petStatus === "sold" ||
+      petStatus === "unavailable"
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "This PETORA listing is no longer available.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const now =
+      new Date().toISOString();
+
+    await sheets.spreadsheets.values.append(
+      {
+        spreadsheetId,
+
+        range:
+          "Enquiries!A:G",
+
+        valueInputOption:
+          "USER_ENTERED",
+
+        insertDataOption:
+          "INSERT_ROWS",
+
+        requestBody: {
+          values: [
+            [
+              now,
+              name,
+              phone,
+              selectedPet.pet_id,
+              breed,
+              message,
+              "New",
+            ],
           ],
-        ],
-      },
-    });
+        },
+      }
+    );
 
     return NextResponse.json(
       {
         success: true,
-        message: "Your PETORA enquiry has been submitted successfully.",
+
+        message:
+          "Your PETORA enquiry has been submitted successfully.",
+
+        pet: {
+          id: selectedPet.pet_id,
+          name:
+            selectedPet.name,
+          breed:
+            selectedPet.breed,
+        },
       },
       { status: 200 }
     );
   } catch (error) {
-    console.error("PETORA POST enquiry error:", error);
+    console.error(
+      "PETORA POST enquiry error:",
+      error
+    );
 
     const details =
       error instanceof Error
@@ -251,7 +427,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json(
       {
-        error: "Unable to submit your enquiry right now.",
+        error:
+          "Unable to submit your enquiry right now.",
         details,
       },
       { status: 500 }
