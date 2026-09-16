@@ -1,0 +1,488 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
+
+type Pet = {
+  id?: string;
+  puppy_id?: string;
+  category?: string;
+  species?: string;
+  breed?: string;
+  name?: string;
+  gender?: string;
+  age?: string;
+  price?: string | number;
+  status?: string;
+  vaccinated?: string;
+  location?: string;
+  image?: string;
+  photo?: string;
+};
+
+const SITE_URL = "https://petora-ashen.vercel.app";
+const BOOKING_DEPOSIT = 1000;
+
+export default function BookingPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const [petId, setPetId] = useState("");
+  const [pet, setPet] = useState<Pet | null>(null);
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [paying, setPaying] = useState(false);
+  const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    params.then(({ id }) => setPetId(id));
+  }, [params]);
+
+  useEffect(() => {
+    if (!petId) return;
+
+    async function loadPet() {
+      try {
+        const response = await fetch("/api/pets", {
+          cache: "no-store",
+        });
+
+        if (!response.ok) {
+          throw new Error("Unable to load pet.");
+        }
+
+        const pets: Pet[] = await response.json();
+
+        const found = pets.find(
+          (item) =>
+            String(item.id || item.puppy_id || "").toLowerCase() ===
+            petId.toLowerCase()
+        );
+
+        setPet(found || null);
+      } catch {
+        setMessage("Unable to load this PETORA listing.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadPet();
+  }, [petId]);
+
+  async function startPayment() {
+    if (!name.trim()) {
+      setMessage("Please enter your name.");
+      return;
+    }
+
+    if (!phone.trim()) {
+      setMessage("Please enter your phone number.");
+      return;
+    }
+
+    if (!email.trim()) {
+      setMessage("Please enter your email address.");
+      return;
+    }
+
+    if (!pet) {
+      setMessage("Pet listing is unavailable.");
+      return;
+    }
+
+    try {
+      setPaying(true);
+      setMessage("");
+
+      const scriptAlreadyLoaded =
+        document.querySelector(
+          'script[src="https://checkout.razorpay.com/v1/checkout.js"]'
+        );
+
+      if (!scriptAlreadyLoaded) {
+        await new Promise<void>((resolve, reject) => {
+          const script = document.createElement("script");
+          script.src = "https://checkout.razorpay.com/v1/checkout.js";
+          script.onload = () => resolve();
+          script.onerror = () =>
+            reject(new Error("Unable to load Razorpay Checkout."));
+          document.body.appendChild(script);
+        });
+      }
+
+      const orderResponse = await fetch("/api/payment/create-order", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          pet_id: pet.id || pet.puppy_id || petId,
+          customer_name: name.trim(),
+          customer_phone: phone.trim(),
+          customer_email: email.trim(),
+          amount: BOOKING_DEPOSIT,
+        }),
+      });
+
+      const orderData = await orderResponse.json();
+
+      if (!orderResponse.ok) {
+        throw new Error(
+          orderData?.error ||
+            orderData?.details ||
+            "Unable to create payment order."
+        );
+      }
+
+      const keyId =
+        orderData.key_id ||
+        orderData.keyId ||
+        process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
+
+      if (!keyId) {
+        throw new Error("Razorpay Key ID is not configured.");
+      }
+
+      const options = {
+        key: keyId,
+        amount: orderData.amount,
+        currency: orderData.currency || "INR",
+        name: "PETORA™",
+        description: `Booking deposit for ${pet.name || pet.breed || petId}`,
+        order_id: orderData.order_id,
+        prefill: {
+          name: name.trim(),
+          email: email.trim(),
+          contact: phone.trim(),
+        },
+        theme: {
+          color: "#07513f",
+        },
+        handler: async function (response: any) {
+          try {
+            setMessage("Verifying your payment...");
+
+            const verifyResponse = await fetch("/api/payment/verify", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                pet_id: pet.id || pet.puppy_id || petId,
+                pet_name: pet.name || pet.breed || "",
+                customer_name: name.trim(),
+                customer_phone: phone.trim(),
+                customer_email: email.trim(),
+                amount: BOOKING_DEPOSIT,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_signature: response.razorpay_signature,
+              }),
+            });
+
+            const verifyData = await verifyResponse.json();
+
+            if (!verifyResponse.ok) {
+              throw new Error(
+                verifyData?.error || "Payment verification failed."
+              );
+            }
+
+            setMessage(
+              "Booking confirmed successfully. PETORA will contact you shortly."
+            );
+          } catch (error) {
+            setMessage(
+              error instanceof Error
+                ? error.message
+                : "Payment verification failed."
+            );
+          } finally {
+            setPaying(false);
+          }
+        },
+        modal: {
+          ondismiss: function () {
+            setPaying(false);
+            setMessage("Payment window closed.");
+          },
+        },
+      };
+
+      const razorpay = new window.Razorpay(options);
+
+      razorpay.on("payment.failed", function (response: any) {
+        setPaying(false);
+        setMessage(
+          response?.error?.description ||
+            "Payment failed. Please try again."
+        );
+      });
+
+      razorpay.open();
+    } catch (error) {
+      setPaying(false);
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Unable to start payment."
+      );
+    }
+  }
+
+  if (loading) {
+    return (
+      <main
+        style={{
+          minHeight: "100vh",
+          display: "grid",
+          placeItems: "center",
+          background: "#f5f7f2",
+          color: "#07513f",
+        }}
+      >
+        Loading PETORA booking...
+      </main>
+    );
+  }
+
+  if (!pet) {
+    return (
+      <main
+        style={{
+          minHeight: "100vh",
+          padding: "80px 24px",
+          background: "#f5f7f2",
+          color: "#07513f",
+        }}
+      >
+        <div
+          style={{
+            maxWidth: "700px",
+            margin: "0 auto",
+            background: "#fff",
+            borderRadius: "28px",
+            padding: "48px",
+          }}
+        >
+          <h1>Pet not found</h1>
+          <p>This PETORA listing is no longer available.</p>
+          <a href="/" style={{ color: "#07513f", fontWeight: 700 }}>
+            ← Back to PETORA
+          </a>
+        </div>
+      </main>
+    );
+  }
+
+  const petName = pet.name || pet.breed || "PETORA Companion";
+  const breed = pet.breed || pet.species || "Pet";
+  const image = pet.image || pet.photo || "";
+
+  return (
+    <main
+      style={{
+        minHeight: "100vh",
+        padding: "50px 24px 80px",
+        background: "#f5f7f2",
+        color: "#07513f",
+      }}
+    >
+      <div
+        style={{
+          maxWidth: "1050px",
+          margin: "0 auto",
+        }}
+      >
+        <a
+          href={`/pets/${encodeURIComponent(pet.id || pet.puppy_id || petId)}`}
+          style={{
+            color: "#07513f",
+            fontWeight: 700,
+            textDecoration: "none",
+          }}
+        >
+          ← Back to {petName}
+        </a>
+
+        <div
+          style={{
+            marginTop: "24px",
+            background: "#fff",
+            borderRadius: "28px",
+            padding: "32px",
+            display: "grid",
+            gridTemplateColumns: "0.9fr 1.1fr",
+            gap: "40px",
+          }}
+        >
+          <div>
+            {image ? (
+              <img
+                src={image}
+                alt={`${petName} - ${breed}`}
+                style={{
+                  width: "100%",
+                  aspectRatio: "1 / 1",
+                  objectFit: "cover",
+                  borderRadius: "22px",
+                }}
+              />
+            ) : (
+              <div
+                style={{
+                  aspectRatio: "1 / 1",
+                  borderRadius: "22px",
+                  background: "#e9eee8",
+                  display: "grid",
+                  placeItems: "center",
+                }}
+              >
+                No photo available
+              </div>
+            )}
+          </div>
+
+          <div>
+            <p
+              style={{
+                color: "#b18324",
+                fontSize: "12px",
+                fontWeight: 800,
+                letterSpacing: "0.16em",
+              }}
+            >
+              PETORA BOOKING
+            </p>
+
+            <h1
+              style={{
+                fontSize: "48px",
+                margin: "10px 0 6px",
+              }}
+            >
+              {petName}
+            </h1>
+
+            <h2 style={{ marginTop: 0 }}>{breed}</h2>
+
+            <p>
+              Reserve this companion with a{" "}
+              <strong>₹{BOOKING_DEPOSIT.toLocaleString("en-IN")}</strong>{" "}
+              booking deposit.
+            </p>
+
+            <div
+              style={{
+                margin: "28px 0",
+                padding: "20px",
+                background: "#f5f7f2",
+                borderRadius: "18px",
+              }}
+            >
+              <strong>Pet price: ₹{String(pet.price || "Contact PETORA")}</strong>
+              <br />
+              <span>
+                Booking deposit: ₹
+                {BOOKING_DEPOSIT.toLocaleString("en-IN")}
+              </span>
+            </div>
+
+            <div style={{ display: "grid", gap: "14px" }}>
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Your full name"
+                style={{
+                  padding: "15px",
+                  borderRadius: "12px",
+                  border: "1px solid #d9dfd8",
+                  fontSize: "16px",
+                }}
+              />
+
+              <input
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="Phone number"
+                type="tel"
+                style={{
+                  padding: "15px",
+                  borderRadius: "12px",
+                  border: "1px solid #d9dfd8",
+                  fontSize: "16px",
+                }}
+              />
+
+              <input
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Email address"
+                type="email"
+                style={{
+                  padding: "15px",
+                  borderRadius: "12px",
+                  border: "1px solid #d9dfd8",
+                  fontSize: "16px",
+                }}
+              />
+
+              <button
+                type="button"
+                onClick={startPayment}
+                disabled={paying}
+                style={{
+                  padding: "16px 22px",
+                  border: 0,
+                  borderRadius: "12px",
+                  background: "#07513f",
+                  color: "#fff",
+                  fontWeight: 800,
+                  fontSize: "16px",
+                  cursor: paying ? "wait" : "pointer",
+                }}
+              >
+                {paying
+                  ? "Opening Secure Payment..."
+                  : `Pay ₹${BOOKING_DEPOSIT.toLocaleString("en-IN")} Booking Deposit →`}
+              </button>
+
+              {message && (
+                <div
+                  style={{
+                    padding: "14px",
+                    borderRadius: "12px",
+                    background: "#eef5ee",
+                    fontWeight: 700,
+                  }}
+                >
+                  {message}
+                </div>
+              )}
+            </div>
+
+            <p
+              style={{
+                marginTop: "18px",
+                fontSize: "12px",
+                color: "#64756d",
+              }}
+            >
+              You will be redirected to Razorpay's secure checkout to complete
+              the booking deposit.
+            </p>
+          </div>
+        </div>
+      </div>
+    </main>
+  );
+}

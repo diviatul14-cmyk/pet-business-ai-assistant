@@ -39,7 +39,8 @@ async function getPet(id: string) {
 
   return pets.find(
     (pet) =>
-      String(pet.id || pet.puppy_id || "").toLowerCase() === id.toLowerCase()
+      String(pet.id || pet.puppy_id || "").toLowerCase() ===
+      id.toLowerCase()
   );
 }
 
@@ -83,7 +84,9 @@ export async function generateMetadata({
             {
               url: pet.image.startsWith("http")
                 ? pet.image
-                : `${SITE_URL}${pet.image.startsWith("/") ? "" : "/"}${pet.image}`,
+                : `${SITE_URL}${
+                    pet.image.startsWith("/") ? "" : "/"
+                  }${pet.image}`,
               alt: `${name} - ${breed}`,
             },
           ]
@@ -120,7 +123,9 @@ export default async function PetDetailPage({
           }}
         >
           <h1>Pet not found</h1>
+
           <p>This listing is no longer available.</p>
+
           <Link href="/">Back to PETORA</Link>
         </div>
       </main>
@@ -137,6 +142,8 @@ export default async function PetDetailPage({
       ? String(rawImage)
       : `/${String(rawImage).split("/").pop()}`
     : "";
+
+  const petId = String(pet.id || pet.puppy_id || id);
 
   return (
     <main
@@ -236,7 +243,10 @@ export default async function PetDetailPage({
               {breed}
             </h2>
 
-            <p>{pet.description || `Explore this ${breed} listing with PETORA.`}</p>
+            <p>
+              {pet.description ||
+                `Explore this ${breed} listing with PETORA.`}
+            </p>
 
             <div
               style={{
@@ -247,10 +257,22 @@ export default async function PetDetailPage({
               }}
             >
               <strong>Gender: {pet.gender || "—"}</strong>
-              <strong>Age: {pet.age || pet.age_weeks || "—"}</strong>
-              <strong>Location: {pet.location || "—"}</strong>
-              <strong>Vaccinated: {pet.vaccinated || "—"}</strong>
-              <strong>Status: {pet.status || "Available"}</strong>
+
+              <strong>
+                Age: {pet.age || pet.age_weeks || "—"}
+              </strong>
+
+              <strong>
+                Location: {pet.location || "—"}
+              </strong>
+
+              <strong>
+                Vaccinated: {pet.vaccinated || "—"}
+              </strong>
+
+              <strong>
+                Status: {pet.status || "Available"}
+              </strong>
             </div>
 
             <div
@@ -264,7 +286,7 @@ export default async function PetDetailPage({
             </div>
 
             <Link
-              href="/#contact"
+              href={`/booking/${encodeURIComponent(pet.id || pet.puppy_id || "")}`}
               style={{
                 display: "inline-block",
                 padding: "15px 22px",
@@ -275,7 +297,7 @@ export default async function PetDetailPage({
                 fontWeight: 800,
               }}
             >
-              I'm Interested →
+              Book This Companion →
             </Link>
           </div>
         </div>
