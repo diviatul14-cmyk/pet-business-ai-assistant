@@ -252,7 +252,16 @@ export default function Home() {
   const [category, setCategory] =
     useState("All");
 
-  const [selectedPetId, setSelectedPetId] =
+  const [selectedPetId, setSelectedPetId] = useState("");
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const petFromUrl = params.get("pet");
+
+    if (petFromUrl) {
+      setSelectedPetId(petFromUrl);
+    }
+  }, []);
     useState("");
 
   const [formMessage, setFormMessage] =
@@ -1230,16 +1239,13 @@ export default function Home() {
                   )}
                 </div>
 
-                <a
-                  className="petora-order-button"
-                  href={`https://wa.me/917011769749?text=${whatsappText}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Order on WhatsApp
-                  <span>→</span>
-                </a>
-
+          <a
+            className="petora-order-button"
+            href={`/product-checkout/${encodeURIComponent(product.product_id)}`}
+          >
+            Buy Now & Pay Online
+            <span>→</span>
+          </a>
               </div>
             </article>
           );

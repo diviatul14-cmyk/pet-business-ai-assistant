@@ -2,246 +2,213 @@ import { NextResponse } from "next/server";
 import { google } from "googleapis";
 import Razorpay from "razorpay";
 
-export const dynamic = "force-dynamic";
-
-type InventoryRow = {
-  pet_id: string;
-  category: string;
-  species: string;
-  breed: string;
-  name: string;
-  gender: string;
-  age: string;
-  price: string;
-  status: string;
-  vaccinated: string;
-  location: string;
-  photo: string;
-  description: string;
-};
+type ProductRow = Record<string, string>;
 
 function clean(value: unknown): string {
   return String(value ?? "").trim();
 }
 
-function getGoogleAuth() {
-  const clientEmail = process.env.GOOGLE_CLIENT_EMAIL;
-  const privateKey = process.env.GOOGLE_PRIVATE_KEY;
-
-  if (!clientEmail) {
-    throw new Error("GOOGLE_CLIENT_EMAIL is missing.");
-  }
-
-  if (!privateKey) {
-    throw new Error("GOOGLE_PRIVATE_KEY is missing.");
-  }
-
-  return new google.auth.JWT({
-    email: clientEmail,
-    key: privateKey.replace(/\\n/g, "\n"),
-    scopes: [
-      "https://www.googleapis.com/auth/spreadsheets.readonly",
-    ],
-  });
+function normalizeKey(value: unknown): string {
+  return clean(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
 }
 
-function getSheetId() {
-  const sheetId = process.env.GOOGLE_SHEET_ID;
+function parsePrice(value: unknown): number {
+  const cleaned = clean(value).replace(/[₹,\s]/g, "");
+  const number = Number(cleaned);
 
-  if (!sheetId) {
+  if (!Number.isFinite(number) || number <= 0) {
+    return 0;
+  }
+
+  return number;
+}
+
+async function getProducts(): Promise<ProductRow[]> {
+  const auth = new google.auth.GoogleAuth({
+    credentials: {
+      client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+      private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
+    },
+    scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+  });
+
+  const sheets = google.sheets({
+    version: "v4",
+    auth,
+  });
+
+  const spreadsheetId = process.env.GOOGLE_SHEET_ID;
+
+  if (!spreadsheetId) {
     throw new Error("GOOGLE_SHEET_ID is missing.");
   }
 
-  return sheetId;
-}
+  const response = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: "Products!A:Z",
+  });
 
-function normalizeInventory(rows: string[][]): InventoryRow[] {
-  if (!rows || rows.length === 0) {
+  const rows = response.data.values ?? [];
+
+  if (rows.length === 0) {
     return [];
   }
 
-  const headers = rows[0].map((header) =>
-    clean(header).toLowerCase().replace(/\s+/g, "_")
-  );
-
-  const indexOf = (name: string) => headers.indexOf(name);
+  const headers = rows[0].map((header) => normalizeKey(header));
 
   return rows.slice(1).map((row) => {
-    const value = (column: string): string => {
-      const index = indexOf(column);
-      return index >= 0 ? clean(row[index]) : "";
-    };
+    const product: ProductRow = {};
 
-    return {
-      pet_id: value("pet_id"),
-      category: value("category"),
-      species: value("species"),
-      breed: value("breed"),
-      name: value("name"),
-      gender: value("gender"),
-      age: value("age"),
-      price: value("price"),
-      status: value("status"),
-      vaccinated: value("vaccinated"),
-      location: value("location"),
-      photo: value("photo"),
-      description: value("description"),
-    };
+    headers.forEach((header, index) => {
+      product[header] = clean(row[index]);
+    });
+
+    return product;
   });
-}
-
-function getRazorpay() {
-  const keyId = process.env.RAZORPAY_KEY_ID;
-  const keySecret = process.env.RAZORPAY_KEY_SECRET;
-
-  if (!keyId) {
-    throw new Error("RAZORPAY_KEY_ID is missing.");
-  }
-
-  if (!keySecret) {
-    throw new Error("RAZORPAY_KEY_SECRET is missing.");
-  }
-
-  return new Razorpay({
-    key_id: keyId,
-    key_secret: keySecret,
-  });
-}
-
-function parsePrice(value: string): number {
-  const cleaned = value.replace(/[₹,\s]/g, "");
-  const price = Number(cleaned);
-
-  if (!Number.isFinite(price) || price <= 0) {
-    throw new Error(`Invalid pet price: ${value}`);
-  }
-
-  return price;
 }
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
 
-    const petId = clean(body?.pet_id);
+    const productId = clean(body?.product_id).toUpperCase();
 
-    if (!petId) {
+    if (!productId) {
       return NextResponse.json(
-        { error: "Pet ID is required." },
+        {
+          success: false,
+          error: "Product ID is required.",
+        },
         { status: 400 }
       );
     }
 
-    /*
-     * IMPORTANT:
-     * The payment amount comes ONLY from the PETORA Inventory sheet.
-     *
-     * The browser cannot choose or modify the payment amount.
-     *
-     * Example:
-     * Lucky -> Inventory price = 19000
-     * Razorpay amount = ₹19,000
-     */
+    const products = await getProducts();
 
-    const auth = getGoogleAuth();
-
-    const sheets = google.sheets({
-      version: "v4",
-      auth,
-    });
-
-    const spreadsheetId = getSheetId();
-
-    const response = await sheets.spreadsheets.values.get({
-      spreadsheetId,
-      range: "Inventory!A:Z",
-    });
-
-    const rows = response.data.values ?? [];
-    const inventory = normalizeInventory(rows);
-
-    const pet = inventory.find(
-      (item) => item.pet_id === petId
+    const product = products.find(
+      (item) =>
+        clean(item.product_id).toUpperCase() === productId
     );
 
-    if (!pet) {
+    if (!product) {
       return NextResponse.json(
-        { error: "Pet not found." },
+        {
+          success: false,
+          error: `Product ${productId} was not found in the Products sheet.`,
+        },
         { status: 404 }
       );
     }
 
-    const status = pet.status.toLowerCase();
+    const productPrice = parsePrice(
+      product.price ||
+        product.sale_price ||
+        product.selling_price ||
+        product.amount
+    );
 
-    if (
-      status === "sold" ||
-      status === "unavailable"
-    ) {
+    if (!productPrice) {
       return NextResponse.json(
         {
-          error:
-            "This pet is no longer available for purchase.",
+          success: false,
+          error: `Price for product ${productId} is missing or invalid in the Products sheet.`,
         },
-        { status: 409 }
+        { status: 400 }
       );
     }
 
-    const petPrice = parsePrice(pet.price);
+    const status = clean(
+      product.status || product.availability || "available"
+    ).toLowerCase();
 
-    const amountInPaise = Math.round(
-      petPrice * 100
-    );
+    if (
+      status === "sold" ||
+      status === "unavailable" ||
+      status === "out_of_stock" ||
+      status === "out of stock"
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "This product is currently unavailable.",
+        },
+        { status: 400 }
+      );
+    }
 
-    const receipt = `PETORA-${petId}-${Date.now()}`
-      .replace(/[^a-zA-Z0-9_-]/g, "")
-      .slice(0, 40);
+    const keyId = process.env.RAZORPAY_KEY_ID;
+    const keySecret = process.env.RAZORPAY_KEY_SECRET;
 
-    const razorpay = getRazorpay();
+    if (!keyId || !keySecret) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Razorpay server credentials are not configured.",
+        },
+        { status: 500 }
+      );
+    }
+
+    const razorpay = new Razorpay({
+      key_id: keyId,
+      key_secret: keySecret,
+    });
+
+    const amountInPaise = Math.round(productPrice * 100);
 
     const order = await razorpay.orders.create({
       amount: amountInPaise,
       currency: "INR",
-      receipt,
+      receipt: `PETORA-${productId}-${Date.now()}`,
       notes: {
-        pet_id: pet.pet_id,
-        pet_name: pet.name || pet.pet_id,
-        purchase_type: "PETORA_FULL_PAYMENT",
-        pet_price: String(petPrice),
+        purchase_type: "PETORA_PRODUCT_FULL_PAYMENT",
+        product_id: productId,
+        product_name: clean(
+          product.product_name ||
+            product.name ||
+            product.title ||
+            product.product
+        ),
+        product_price: String(productPrice),
       },
     });
 
-    return NextResponse.json(
-      {
-        success: true,
-        order_id: order.id,
-        amount: order.amount,
-        currency: order.currency,
-        key_id: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-        pet: {
-          id: pet.pet_id,
-          name: pet.name || pet.pet_id,
-          breed: pet.breed,
-          price: petPrice,
-        },
+    return NextResponse.json({
+      success: true,
+      order_id: order.id,
+      amount: amountInPaise,
+      currency: "INR",
+      key_id: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+      product: {
+        id: productId,
+        product_id: productId,
+        name: clean(
+          product.product_name ||
+            product.name ||
+            product.title ||
+            product.product
+        ),
+        price: productPrice,
+        image: clean(
+          product.image ||
+            product.photo ||
+            product.product_image
+        ),
       },
-      { status: 200 }
-    );
-  } catch (error) {
-    console.error(
-      "PETORA Razorpay create-order error:",
-      error
-    );
-
-    const details =
-      error instanceof Error
-        ? error.message
-        : String(error);
+    });
+  } catch (error: unknown) {
+    console.error("PRODUCT CREATE ORDER ERROR:", error);
 
     return NextResponse.json(
       {
+        success: false,
         error:
-          "Unable to create the PETORA payment order.",
-        details,
+          error instanceof Error
+            ? error.message
+            : "Unable to create product payment order.",
       },
       { status: 500 }
     );
