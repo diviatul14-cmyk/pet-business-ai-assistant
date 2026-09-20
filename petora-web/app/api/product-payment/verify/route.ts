@@ -43,7 +43,9 @@ function getConfig() {
   const spreadsheetId = process.env.GOOGLE_SHEET_ID;
 
   if (!clientEmail || !privateKey || !spreadsheetId) {
-    throw new Error("Google Sheets environment variables are missing.");
+    throw new Error(
+      "Google Sheets environment variables are missing."
+    );
   }
 
   return {
@@ -54,14 +56,20 @@ function getConfig() {
 }
 
 async function getProducts(): Promise<ProductRecord[]> {
-  const { clientEmail, privateKey, spreadsheetId } = getConfig();
+  const {
+    clientEmail,
+    privateKey,
+    spreadsheetId,
+  } = getConfig();
 
   const auth = new google.auth.GoogleAuth({
     credentials: {
       client_email: clientEmail,
       private_key: privateKey,
     },
-    scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+    scopes: [
+      "https://www.googleapis.com/auth/spreadsheets",
+    ],
   });
 
   const sheets = google.sheets({
@@ -69,10 +77,11 @@ async function getProducts(): Promise<ProductRecord[]> {
     auth,
   });
 
-  const response = await sheets.spreadsheets.values.get({
-    spreadsheetId,
-    range: "Products!A:Z",
-  });
+  const response =
+    await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: "Products!A:Z",
+    });
 
   const rows = response.data.values ?? [];
 
@@ -130,14 +139,20 @@ function verifySignature(
 }
 
 async function getSheetsClient() {
-  const { clientEmail, privateKey, spreadsheetId } = getConfig();
+  const {
+    clientEmail,
+    privateKey,
+    spreadsheetId,
+  } = getConfig();
 
   const auth = new google.auth.GoogleAuth({
     credentials: {
       client_email: clientEmail,
       private_key: privateKey,
     },
-    scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+    scopes: [
+      "https://www.googleapis.com/auth/spreadsheets",
+    ],
   });
 
   return {
@@ -153,12 +168,17 @@ async function ensureProductOrdersSheet(
   sheets: ReturnType<typeof google.sheets>,
   spreadsheetId: string
 ) {
-  const spreadsheet = await sheets.spreadsheets.get({
-    spreadsheetId,
-  });
+  const spreadsheet =
+    await sheets.spreadsheets.get({
+      spreadsheetId,
+    });
 
-  const exists = (spreadsheet.data.sheets ?? []).some(
-    (sheet) => sheet.properties?.title === "ProductOrders"
+  const exists = (
+    spreadsheet.data.sheets ?? []
+  ).some(
+    (sheet) =>
+      sheet.properties?.title ===
+      "ProductOrders"
   );
 
   if (exists) {
@@ -208,19 +228,49 @@ async function ensureProductOrdersSheet(
   });
 }
 
-export async function POST(request: Request) {
+export async function POST(
+  request: Request
+) {
   try {
     const body = await request.json();
 
-    const productId = clean(body?.product_id);
-    const customerName = clean(body?.customer_name);
-    const phone = clean(body?.phone);
-    const email = clean(body?.email);
-    const address = clean(body?.address);
+    /*
+     * Customer information
+     */
+    const productId = clean(
+      body?.product_id
+    );
 
-    const paymentId = clean(body?.razorpay_payment_id);
-    const orderId = clean(body?.razorpay_order_id);
-    const signature = clean(body?.razorpay_signature);
+    const customerName = clean(
+      body?.customer_name
+    );
+
+    const phone = clean(
+      body?.phone
+    );
+
+    const email = clean(
+      body?.email
+    );
+
+    const address = clean(
+      body?.address
+    );
+
+    /*
+     * Razorpay information
+     */
+    const paymentId = clean(
+      body?.razorpay_payment_id
+    );
+
+    const orderId = clean(
+      body?.razorpay_order_id
+    );
+
+    const signature = clean(
+      body?.razorpay_signature
+    );
 
     if (
       !productId ||
@@ -235,85 +285,172 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          error: "Required order or customer information is missing.",
+          error:
+            "Required order or customer information is missing.",
         },
         { status: 400 }
       );
     }
 
-    const razorpayKeyId = process.env.RAZORPAY_KEY_ID;
-    const razorpayKeySecret = process.env.RAZORPAY_KEY_SECRET;
+    /*
+     * Razorpay credentials
+     */
+    const razorpayKeyId =
+      process.env.RAZORPAY_KEY_ID;
 
-    if (!razorpayKeyId || !razorpayKeySecret) {
+    const razorpayKeySecret =
+      process.env.RAZORPAY_KEY_SECRET;
+
+    if (
+      !razorpayKeyId ||
+      !razorpayKeySecret
+    ) {
       return NextResponse.json(
         {
           success: false,
-          error: "Razorpay server credentials are missing.",
+          error:
+            "Razorpay server credentials are missing.",
         },
         { status: 500 }
       );
     }
 
-    const products = await getProducts();
+    /*
+     * Get the CURRENT product record
+     * from Google Sheets.
+     */
+    const products =
+      await getProducts();
 
-    const product = products.find(
-      (item) =>
-        clean(item.product_id).toLowerCase() ===
-        productId.toLowerCase()
-    );
+    const product =
+      products.find(
+        (item) =>
+          clean(item.product_id)
+            .toLowerCase() ===
+          productId.toLowerCase()
+      );
 
     if (!product) {
       return NextResponse.json(
         {
           success: false,
-          error: `Product ${productId} was not found.`,
+          error:
+            `Product ${productId} was not found.`,
         },
         { status: 404 }
       );
     }
 
-    const productPrice = parsePrice(product.price);
+    /*
+     * IMPORTANT:
+     *
+     * Price is taken from Google Sheets.
+     * Never trust a price sent by the browser.
+     */
+    const productPrice =
+      parsePrice(product.price);
 
     if (productPrice <= 0) {
       return NextResponse.json(
         {
           success: false,
-          error: `Invalid product price for ${product.product_name}.`,
+          error:
+            `Invalid product price for ${product.product_name}.`,
         },
         { status: 400 }
       );
     }
 
-    const expectedAmount = Math.round(productPrice * 100);
+    /*
+     * Check current stock/status.
+     */
+    const stock =
+      clean(product.stock).toLowerCase();
 
-    const razorpay = new Razorpay({
-      key_id: razorpayKeyId,
-      key_secret: razorpayKeySecret,
-    });
+    const status =
+      clean(product.status).toLowerCase();
 
-    const order = await razorpay.orders.fetch(orderId);
+    const unavailable =
+      stock === "0" ||
+      stock === "out of stock" ||
+      stock === "sold out" ||
+      status === "out of stock" ||
+      status === "inactive" ||
+      status === "unavailable";
 
-    if (!order || order.id !== orderId) {
+    if (unavailable) {
       return NextResponse.json(
         {
           success: false,
-          error: "Razorpay order could not be verified.",
+          error:
+            `${product.product_name} is currently out of stock.`,
         },
-        { status: 400 }
+        { status: 409 }
       );
     }
 
-    if (order.currency !== "INR") {
+    /*
+     * Expected Razorpay amount.
+     */
+    const expectedAmount =
+      Math.round(productPrice * 100);
+
+    /*
+     * Create Razorpay server client.
+     */
+    const razorpay =
+      new Razorpay({
+        key_id: razorpayKeyId,
+        key_secret:
+          razorpayKeySecret,
+      });
+
+    /*
+     * Fetch the Razorpay order.
+     */
+    const order =
+      await razorpay.orders.fetch(
+        orderId
+      );
+
+    if (
+      !order ||
+      order.id !== orderId
+    ) {
       return NextResponse.json(
         {
           success: false,
-          error: "Invalid payment currency.",
+          error:
+            "Razorpay order could not be verified.",
         },
         { status: 400 }
       );
     }
 
-    if (Number(order.amount) !== expectedAmount) {
+    /*
+     * Check currency.
+     */
+    if (
+      order.currency !== "INR"
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Invalid payment currency.",
+        },
+        { status: 400 }
+      );
+    }
+
+    /*
+     * Check Razorpay order amount
+     * against the CURRENT Google Sheets price.
+     */
+    if (
+      Number(order.amount) !==
+      expectedAmount
+    ) {
       return NextResponse.json(
         {
           success: false,
@@ -324,36 +461,61 @@ export async function POST(request: Request) {
       );
     }
 
-    if (
-      !verifySignature(
+    /*
+     * Verify Razorpay signature.
+     */
+    const signatureValid =
+      verifySignature(
         orderId,
         paymentId,
         signature,
         razorpayKeySecret
-      )
+      );
+
+    if (!signatureValid) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Invalid Razorpay payment signature.",
+        },
+        { status: 400 }
+      );
+    }
+
+    /*
+     * Fetch the actual payment from Razorpay.
+     */
+    const payment =
+      await razorpay.payments.fetch(
+        paymentId
+      );
+
+    /*
+     * Payment must belong to
+     * the same Razorpay order.
+     */
+    if (
+      !payment ||
+      payment.order_id !== orderId
     ) {
       return NextResponse.json(
         {
           success: false,
-          error: "Invalid Razorpay payment signature.",
+          error:
+            "Payment does not belong to this order.",
         },
         { status: 400 }
       );
     }
 
-    const payment = await razorpay.payments.fetch(paymentId);
-
-    if (!payment || payment.order_id !== orderId) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Payment does not belong to this order.",
-        },
-        { status: 400 }
-      );
-    }
-
-    if (Number(payment.amount) !== expectedAmount) {
+    /*
+     * Check actual paid amount.
+     */
+    if (
+      Number(payment.amount) !==
+      expectedAmount
+    ) {
       return NextResponse.json(
         {
           success: false,
@@ -364,89 +526,181 @@ export async function POST(request: Request) {
       );
     }
 
-    if (payment.currency !== "INR") {
+    /*
+     * Check payment currency.
+     */
+    if (
+      payment.currency !== "INR"
+    ) {
       return NextResponse.json(
         {
           success: false,
-          error: "Invalid payment currency.",
+          error:
+            "Invalid payment currency.",
         },
         { status: 400 }
       );
     }
 
-    if (payment.status !== "captured") {
+    /*
+     * Payment must be captured.
+     */
+    if (
+      payment.status !==
+      "captured"
+    ) {
       return NextResponse.json(
         {
           success: false,
-          error: `Payment is not captured. Current status: ${payment.status}.`,
+          error:
+            `Payment is not captured. Current status: ${payment.status}.`,
         },
         { status: 400 }
       );
     }
 
-    const { sheets, spreadsheetId } = await getSheetsClient();
-
-    await ensureProductOrdersSheet(sheets, spreadsheetId);
-
-    const existing = await sheets.spreadsheets.values.get({
+    /*
+     * Get Google Sheets client.
+     */
+    const {
+      sheets,
       spreadsheetId,
-      range: "ProductOrders!A:O",
-    });
+    } = await getSheetsClient();
 
-    const rows = existing.data.values ?? [];
+    /*
+     * Make sure ProductOrders exists.
+     */
+    await ensureProductOrdersSheet(
+      sheets,
+      spreadsheetId
+    );
 
-    const alreadySaved = rows
-      .slice(1)
-      .some((row) => clean(row[11]) === paymentId);
+    /*
+     * Check whether this payment
+     * has already been recorded.
+     */
+    const existing =
+      await sheets.spreadsheets.values.get(
+        {
+          spreadsheetId,
+          range: "ProductOrders!A:O",
+        }
+      );
 
+    const rows =
+      existing.data.values ?? [];
+
+    const alreadySaved =
+      rows
+        .slice(1)
+        .some(
+          (row) =>
+            clean(row[11]) ===
+            paymentId
+        );
+
+    /*
+     * Save the order only once.
+     */
     if (!alreadySaved) {
       const orderRecordId =
         `PO-${product.product_id}-${Date.now()}`;
 
-      await sheets.spreadsheets.values.append({
-        spreadsheetId,
-        range: "ProductOrders!A:O",
-        valueInputOption: "USER_ENTERED",
-        insertDataOption: "INSERT_ROWS",
-        requestBody: {
-          values: [
-            [
-              orderRecordId,
-              new Date().toISOString(),
-              product.product_id,
-              product.product_name,
-              product.brand,
-              customerName,
-              phone,
-              email,
-              address,
-              productPrice,
-              expectedAmount / 100,
-              paymentId,
-              orderId,
-              "CAPTURED",
-              "ORDER_CONFIRMED",
+      await sheets.spreadsheets.values.append(
+        {
+          spreadsheetId,
+          range:
+            "ProductOrders!A:O",
+
+          valueInputOption:
+            "USER_ENTERED",
+
+          insertDataOption:
+            "INSERT_ROWS",
+
+          requestBody: {
+            values: [
+              [
+                orderRecordId,
+
+                new Date().toISOString(),
+
+                product.product_id,
+
+                product.product_name,
+
+                product.brand,
+
+                customerName,
+
+                phone,
+
+                email,
+
+                address,
+
+                productPrice,
+
+                expectedAmount / 100,
+
+                paymentId,
+
+                orderId,
+
+                "CAPTURED",
+
+                "ORDER_CONFIRMED",
+              ],
             ],
-          ],
-        },
-      });
+          },
+        }
+      );
     }
 
+    /*
+     * Final success response.
+     */
     return NextResponse.json({
       success: true,
+
       order_confirmed: true,
+
       payment_status: "CAPTURED",
+
       product: {
-        product_id: product.product_id,
-        product_name: product.product_name,
-        price: productPrice,
+        product_id:
+          product.product_id,
+
+        product_name:
+          product.product_name,
+
+        brand:
+          product.brand,
+
+        unit:
+          product.unit,
+
+        price:
+          productPrice,
+
+        mrp:
+          parsePrice(product.mrp),
       },
-      amount: expectedAmount / 100,
-      payment_id: paymentId,
-      order_id: orderId,
+
+      amount:
+        expectedAmount / 100,
+
+      payment_id:
+        paymentId,
+
+      order_id:
+        orderId,
     });
   } catch (error) {
-    console.error("PETORA product payment verification error:", error);
+    console.error(
+      "PETORA product payment verification error:",
+      error
+    );
 
     return NextResponse.json(
       {

@@ -19,11 +19,23 @@ type Product = {
   status?: string;
 };
 
+type RoyalCaninVariant = {
+  id: string;
+  label: string;
+};
+
 declare global {
   interface Window {
     Razorpay: any;
   }
 }
+
+const royalCaninVariants: RoyalCaninVariant[] = [
+  { id: "PF001-800G", label: "800 g" },
+  { id: "PF001-1.1KG", label: "1.1 kg" },
+  { id: "PF001-4KG", label: "4 kg" },
+  { id: "PF001-8KG", label: "8 kg" },
+];
 
 function clean(value: unknown): string {
   return String(value ?? "").trim();
@@ -44,10 +56,46 @@ function money(value: unknown): string {
   return `₹${number.toLocaleString("en-IN")}`;
 }
 
-function imageForProduct(productId: string, product: Product): string {
+function numericMoney(value: unknown): number {
+  const number = Number(
+    clean(value)
+      .replace(/₹/g, "")
+      .replace(/,/g, "")
+      .replace(/\s/g, "")
+  );
+
+  return Number.isFinite(number) ? number : 0;
+}
+
+function isRoyalCaninFamily(productId: string): boolean {
+  const id = clean(productId).toUpperCase();
+
+  return id === "PF001" || id.startsWith("PF001-");
+}
+
+function getDefaultRoyalCaninVariant(productId: string): string {
   const id = clean(productId).toUpperCase();
 
   if (id === "PF001") {
+    return "PF001-800G";
+  }
+
+  if (royalCaninVariants.some((variant) => variant.id === id)) {
+    return id;
+  }
+
+  return "PF001-800G";
+}
+
+function imageForProduct(productId: string, product: Product): string {
+  const id = clean(productId).toUpperCase();
+
+  /*
+   * Royal Canin main product image.
+   *
+   * This file already exists in your project.
+   */
+  if (id.startsWith("PF001")) {
     return "/products/premium-puppy-food.png";
   }
 
@@ -74,6 +122,38 @@ function imageForProduct(productId: string, product: Product): string {
     : `/${raw.replace(/^\/+/, "")}`;
 }
 
+/*
+ * Royal Canin gallery.
+ *
+ * The first image already exists.
+ * Add the optional images later using these exact filenames:
+ *
+ * /public/products/royal-canin-mini-puppy-2.png
+ * /public/products/royal-canin-mini-puppy-3.png
+ * /public/products/royal-canin-mini-puppy-4.png
+ * /public/products/royal-canin-mini-puppy-5.png
+ *
+ * Until those files are added, they simply disappear from the gallery.
+ */
+function getGalleryImages(
+  productId: string,
+  product: Product
+): string[] {
+  if (isRoyalCaninFamily(productId)) {
+    return [
+      imageForProduct(productId, product),
+      "/products/royal-canin-mini-puppy-2.png",
+      "/products/royal-canin-mini-puppy-3.png",
+      "/products/royal-canin-mini-puppy-4.png",
+      "/products/royal-canin-mini-puppy-5.png",
+    ].filter(Boolean);
+  }
+
+  const mainImage = imageForProduct(productId, product);
+
+  return mainImage ? [mainImage] : [];
+}
+
 async function readApiResponse(response: Response): Promise<any> {
   const text = await response.text();
 
@@ -86,9 +166,12 @@ async function readApiResponse(response: Response): Promise<any> {
   try {
     return JSON.parse(text);
   } catch {
-    if (text.includes("<!DOCTYPE") || text.includes("<html")) {
+    if (
+      text.includes("<!DOCTYPE") ||
+      text.includes("<html")
+    ) {
       throw new Error(
-        `The server returned an HTML error page (${response.status}). Please check the payment API route.`
+        `The server returned an HTML error page (${response.status}). Please check the API route.`
       );
     }
 
@@ -107,6 +190,10 @@ export default function ProductCheckoutPage() {
   );
 
   const [product, setProduct] = useState<Product | null>(null);
+
+  const [selectedProductId, setSelectedProductId] =
+    useState("");
+
   const [loading, setLoading] = useState(true);
   const [pageError, setPageError] = useState("");
 
@@ -120,7 +207,26 @@ export default function ProductCheckoutPage() {
   const [paymentId, setPaymentId] = useState("");
   const [paymentError, setPaymentError] = useState("");
 
-  /* Load Razorpay correctly */
+  const [activeImage, setActiveImage] = useState(0);
+
+  /*
+   * ---------------------------------------------------------
+   * Determine the actual product ID being purchased.
+   *
+   * PF001 is the main Royal Canin family.
+   * PF001 automatically starts with the 800 g variant.
+   * ---------------------------------------------------------
+   */
+  const targetProductId = isRoyalCaninFamily(productId)
+    ? selectedProductId ||
+      getDefaultRoyalCaninVariant(productId)
+    : productId;
+
+  /*
+   * ---------------------------------------------------------
+   * Load Razorpay
+   * ---------------------------------------------------------
+   */
   useEffect(() => {
     if (document.getElementById("razorpay-checkout-js")) {
       return;
@@ -129,13 +235,18 @@ export default function ProductCheckoutPage() {
     const script = document.createElement("script");
 
     script.id = "razorpay-checkout-js";
-    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.src =
+      "https://checkout.razorpay.com/v1/checkout.js";
     script.async = true;
 
     document.body.appendChild(script);
   }, []);
 
-  /* Load product */
+  /*
+   * ---------------------------------------------------------
+   * Load product from Google Sheets
+   * ---------------------------------------------------------
+   */
   useEffect(() => {
     if (!productId) {
       setPageError("Invalid product ID.");
@@ -175,21 +286,39 @@ export default function ProductCheckoutPage() {
         const found = products.find(
           (item) =>
             clean(item.product_id).toUpperCase() ===
-            productId.toUpperCase()
+            targetProductId.toUpperCase()
         );
 
         if (!found) {
-          throw new Error("Product not found.");
+          throw new Error(
+            `Product ${targetProductId} was not found in the Products sheet.`
+          );
         }
 
         if (!cancelled) {
           setProduct(found);
+          setActiveImage(0);
+
+          /*
+           * If the user opened /product-checkout/PF001,
+           * select the default 800 g variant.
+           */
+          if (
+            isRoyalCaninFamily(productId) &&
+            !selectedProductId
+          ) {
+            setSelectedProductId(targetProductId);
+          }
         }
       } catch (error) {
-        console.error("PETORA product load error:", error);
+        console.error(
+          "PETORA product load error:",
+          error
+        );
 
         if (!cancelled) {
           setProduct(null);
+
           setPageError(
             error instanceof Error
               ? error.message
@@ -208,23 +337,84 @@ export default function ProductCheckoutPage() {
     return () => {
       cancelled = true;
     };
-  }, [productId]);
+  }, [
+    productId,
+    targetProductId,
+    selectedProductId,
+  ]);
 
-  const imageSrc = useMemo(() => {
+  /*
+   * ---------------------------------------------------------
+   * Gallery
+   * ---------------------------------------------------------
+   */
+  const galleryImages = useMemo(() => {
     if (!product) {
-      return "";
+      return [];
     }
 
-    return imageForProduct(productId, product);
-  }, [product, productId]);
+    return getGalleryImages(
+      targetProductId,
+      product
+    );
+  }, [product, targetProductId]);
+
+  const safeActiveImage =
+    activeImage < galleryImages.length
+      ? activeImage
+      : 0;
+
+  const imageSrc =
+    galleryImages[safeActiveImage] || "";
+
+  /*
+   * ---------------------------------------------------------
+   * Price
+   * ---------------------------------------------------------
+   */
+  const priceNumber = numericMoney(product?.price);
+  const mrpNumber = numericMoney(product?.mrp);
 
   const priceText = money(product?.price);
+  const mrpText = money(product?.mrp);
 
-  async function payNow(event: FormEvent<HTMLFormElement>) {
+  const hasDiscount =
+    mrpNumber > priceNumber && priceNumber > 0;
+
+  const discountPercent = hasDiscount
+    ? Math.round(
+        ((mrpNumber - priceNumber) / mrpNumber) * 100
+      )
+    : 0;
+
+  /*
+   * ---------------------------------------------------------
+   * Select Royal Canin variant
+   * ---------------------------------------------------------
+   */
+  function selectVariant(variantId: string) {
+    setPaymentError("");
+    setSuccess(false);
+    setPaymentId("");
+
+    setSelectedProductId(variantId);
+    setActiveImage(0);
+  }
+
+  /*
+   * ---------------------------------------------------------
+   * Payment
+   * ---------------------------------------------------------
+   */
+  async function payNow(
+    event: FormEvent<HTMLFormElement>
+  ) {
     event.preventDefault();
 
     if (!product) {
-      setPaymentError("Product information is unavailable.");
+      setPaymentError(
+        "Product information is unavailable."
+      );
       return;
     }
 
@@ -234,37 +424,67 @@ export default function ProductCheckoutPage() {
     const customerAddress = address.trim();
 
     if (!customerName) {
-      setPaymentError("Please enter your full name.");
+      setPaymentError(
+        "Please enter your full name."
+      );
       return;
     }
 
     if (!/^[6-9]\d{9}$/.test(customerPhone)) {
-      setPaymentError("Please enter a valid 10-digit Indian mobile number.");
+      setPaymentError(
+        "Please enter a valid 10-digit Indian mobile number."
+      );
       return;
     }
 
-    if (!customerEmail || !customerEmail.includes("@")) {
-      setPaymentError("Please enter a valid email address.");
+    if (
+      !customerEmail ||
+      !customerEmail.includes("@")
+    ) {
+      setPaymentError(
+        "Please enter a valid email address."
+      );
       return;
     }
 
     if (!customerAddress) {
-      setPaymentError("Please enter your delivery address.");
+      setPaymentError(
+        "Please enter your delivery address."
+      );
       return;
     }
+
+    /*
+     * IMPORTANT:
+     *
+     * For Royal Canin, use the selected variant ID.
+     *
+     * Example:
+     * PF001-800G
+     * PF001-1.1KG
+     * PF001-4KG
+     * PF001-8KG
+     */
+    const purchaseProductId =
+      isRoyalCaninFamily(productId)
+        ? selectedProductId ||
+          getDefaultRoyalCaninVariant(productId)
+        : productId;
 
     setPaying(true);
     setPaymentError("");
 
     try {
-      /* =====================================================
-         STEP 1
-         Create Razorpay order.
-
-         IMPORTANT:
-         We send ONLY product_id.
-         The server reads the actual price from Products.
-      ===================================================== */
+      /*
+       * =====================================================
+       * STEP 1
+       * Create Razorpay order
+       *
+       * Only the PRODUCT ID is sent.
+       *
+       * The server reads the real price from Google Sheets.
+       * =====================================================
+       */
 
       const createResponse = await fetch(
         "/api/product-payment/create-order",
@@ -274,14 +494,18 @@ export default function ProductCheckoutPage() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            product_id: productId,
+            product_id: purchaseProductId,
           }),
         }
       );
 
-      const orderData = await readApiResponse(createResponse);
+      const orderData =
+        await readApiResponse(createResponse);
 
-      if (!createResponse.ok || !orderData?.success) {
+      if (
+        !createResponse.ok ||
+        !orderData?.success
+      ) {
         throw new Error(
           orderData?.error ||
             orderData?.message ||
@@ -289,158 +513,224 @@ export default function ProductCheckoutPage() {
         );
       }
 
-      const orderId = clean(orderData.order_id);
-      const keyId = clean(orderData.key_id);
-      const amount = Number(orderData.amount);
+      const orderId = clean(
+        orderData.order_id
+      );
+
+      const keyId = clean(
+        orderData.key_id
+      );
+
+      const amount = Number(
+        orderData.amount
+      );
 
       if (!orderId) {
-        throw new Error("Razorpay order ID was not returned.");
+        throw new Error(
+          "Razorpay order ID was not returned."
+        );
       }
 
       if (!keyId) {
-        throw new Error("Razorpay Key ID was not returned.");
+        throw new Error(
+          "Razorpay Key ID was not returned."
+        );
       }
 
-      if (!Number.isFinite(amount) || amount <= 0) {
-        throw new Error("Invalid payment amount returned by the server.");
+      if (
+        !Number.isFinite(amount) ||
+        amount <= 0
+      ) {
+        throw new Error(
+          "Invalid payment amount returned by the server."
+        );
       }
 
-      /* Wait for Razorpay */
+      /*
+       * Wait for Razorpay Checkout.
+       */
       if (!window.Razorpay) {
-        await new Promise<void>((resolve, reject) => {
-          const started = Date.now();
+        await new Promise<void>(
+          (resolve, reject) => {
+            const started = Date.now();
 
-          const timer = window.setInterval(() => {
-            if (window.Razorpay) {
-              window.clearInterval(timer);
-              resolve();
-              return;
-            }
+            const timer =
+              window.setInterval(() => {
+                if (window.Razorpay) {
+                  window.clearInterval(timer);
+                  resolve();
+                  return;
+                }
 
-            if (Date.now() - started > 10000) {
-              window.clearInterval(timer);
-              reject(
-                new Error(
-                  "Razorpay Checkout could not be loaded. Please refresh the page."
-                )
-              );
-            }
-          }, 200);
-        });
+                if (
+                  Date.now() - started >
+                  10000
+                ) {
+                  window.clearInterval(timer);
+
+                  reject(
+                    new Error(
+                      "Razorpay Checkout could not be loaded. Please refresh the page."
+                    )
+                  );
+                }
+              }, 200);
+          }
+        );
       }
 
-      /* =====================================================
-         STEP 2
-         Open Razorpay
-      ===================================================== */
+      /*
+       * =====================================================
+       * STEP 2
+       * Open Razorpay
+       * =====================================================
+       */
 
-      const checkout = new window.Razorpay({
-        key: keyId,
-        amount,
-        currency: clean(orderData.currency) || "INR",
+      const checkout =
+        new window.Razorpay({
+          key: keyId,
+          amount,
+          currency:
+            clean(orderData.currency) ||
+            "INR",
 
-        name: "PETORA™",
+          name: "PETORA™",
 
-        description: `${product.product_name || "PETORA Product"} - Full Payment`,
+          description: `${
+            product.product_name ||
+            "PETORA Product"
+          } - Full Payment`,
 
-        order_id: orderId,
+          order_id: orderId,
 
-        prefill: {
-          name: customerName,
-          email: customerEmail,
-          contact: customerPhone,
-        },
-
-        notes: {
-          product_id: productId,
-          customer_name: customerName,
-          phone: customerPhone,
-          email: customerEmail,
-          address: customerAddress,
-          purchase_type: "PETORA_PRODUCT_FULL_PAYMENT",
-        },
-
-        theme: {
-          color: "#087c68",
-        },
-
-        handler: async function (response: {
-          razorpay_payment_id: string;
-          razorpay_order_id: string;
-          razorpay_signature: string;
-        }) {
-          try {
-            setPaymentError("");
-
-            /* ===============================================
-               STEP 3
-               Verify payment on the server
-            =============================================== */
-
-            const verifyResponse = await fetch(
-              "/api/product-payment/verify",
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  product_id: productId,
-                  customer_name: customerName,
-                  phone: customerPhone,
-                  email: customerEmail,
-                  address: customerAddress,
-
-                  razorpay_payment_id:
-                    response.razorpay_payment_id,
-
-                  razorpay_order_id:
-                    response.razorpay_order_id,
-
-                  razorpay_signature:
-                    response.razorpay_signature,
-                }),
-              }
-            );
-
-            const verifyData =
-              await readApiResponse(verifyResponse);
-
-            if (!verifyResponse.ok || !verifyData?.success) {
-              throw new Error(
-                verifyData?.error ||
-                  verifyData?.message ||
-                  "Payment verification failed."
-              );
-            }
-
-            setPaymentId(
-              response.razorpay_payment_id
-            );
-
-            setSuccess(true);
-          } catch (error) {
-            console.error(
-              "PETORA payment verification error:",
-              error
-            );
-
-            setPaymentError(
-              error instanceof Error
-                ? error.message
-                : "Payment verification failed."
-            );
-          } finally {
-            setPaying(false);
-          }
-        },
-
-        modal: {
-          ondismiss: function () {
-            setPaying(false);
+          prefill: {
+            name: customerName,
+            email: customerEmail,
+            contact: customerPhone,
           },
-        },
-      });
+
+          notes: {
+            product_id:
+              purchaseProductId,
+
+            customer_name:
+              customerName,
+
+            phone:
+              customerPhone,
+
+            email:
+              customerEmail,
+
+            address:
+              customerAddress,
+
+            purchase_type:
+              "PETORA_PRODUCT_FULL_PAYMENT",
+          },
+
+          theme: {
+            color: "#087c68",
+          },
+
+          /*
+           * =================================================
+           * STEP 3
+           * Verify payment on the server
+           * =================================================
+           */
+          handler: async function (
+            response: {
+              razorpay_payment_id: string;
+              razorpay_order_id: string;
+              razorpay_signature: string;
+            }
+          ) {
+            try {
+              setPaymentError("");
+
+              const verifyResponse =
+                await fetch(
+                  "/api/product-payment/verify",
+                  {
+                    method: "POST",
+
+                    headers: {
+                      "Content-Type":
+                        "application/json",
+                    },
+
+                    body: JSON.stringify({
+                      product_id:
+                        purchaseProductId,
+
+                      customer_name:
+                        customerName,
+
+                      phone:
+                        customerPhone,
+
+                      email:
+                        customerEmail,
+
+                      address:
+                        customerAddress,
+
+                      razorpay_payment_id:
+                        response.razorpay_payment_id,
+
+                      razorpay_order_id:
+                        response.razorpay_order_id,
+
+                      razorpay_signature:
+                        response.razorpay_signature,
+                    }),
+                  }
+                );
+
+              const verifyData =
+                await readApiResponse(
+                  verifyResponse
+                );
+
+              if (
+                !verifyResponse.ok ||
+                !verifyData?.success
+              ) {
+                throw new Error(
+                  verifyData?.error ||
+                    verifyData?.message ||
+                    "Payment verification failed."
+                );
+              }
+
+              setPaymentId(
+                response.razorpay_payment_id
+              );
+
+              setSuccess(true);
+            } catch (error) {
+              console.error(
+                "PETORA payment verification error:",
+                error
+              );
+
+              setPaymentError(
+                error instanceof Error
+                  ? error.message
+                  : "Payment verification failed."
+              );
+            } finally {
+              setPaying(false);
+            }
+          },
+
+          modal: {
+            ondismiss: function () {
+              setPaying(false);
+            },
+          },
+        });
 
       checkout.on(
         "payment.failed",
@@ -451,7 +741,8 @@ export default function ProductCheckoutPage() {
           );
 
           setPaymentError(
-            response?.error?.description ||
+            response?.error
+              ?.description ||
               "Payment failed. Please try again."
           );
 
@@ -461,7 +752,10 @@ export default function ProductCheckoutPage() {
 
       checkout.open();
     } catch (error) {
-      console.error("PETORA checkout error:", error);
+      console.error(
+        "PETORA checkout error:",
+        error
+      );
 
       setPaymentError(
         error instanceof Error
@@ -473,16 +767,23 @@ export default function ProductCheckoutPage() {
     }
   }
 
-  /* =====================================================
-     LOADING
-  ===================================================== */
+  /*
+   * =========================================================
+   * LOADING
+   * =========================================================
+   */
 
   if (loading) {
     return (
       <main className="page">
         <div className="message-card">
-          <div className="logo">PETORA™</div>
-          <p>Loading product...</p>
+          <div className="logo">
+            PETORA™
+          </div>
+
+          <p>
+            Loading product...
+          </p>
         </div>
 
         <style jsx>{`
@@ -501,7 +802,8 @@ export default function ProductCheckoutPage() {
             padding: 45px;
             border-radius: 24px;
             text-align: center;
-            box-shadow: 0 20px 60px rgba(0,0,0,.08);
+            box-shadow:
+              0 20px 60px rgba(0, 0, 0, 0.08);
           }
 
           .logo {
@@ -518,23 +820,34 @@ export default function ProductCheckoutPage() {
     );
   }
 
-  /* =====================================================
-     ERROR
-  ===================================================== */
+  /*
+   * =========================================================
+   * ERROR
+   * =========================================================
+   */
 
   if (pageError || !product) {
     return (
       <main className="page">
         <div className="message-card">
-          <div className="logo">PETORA™</div>
+          <div className="logo">
+            PETORA™
+          </div>
 
-          <h1>Product unavailable</h1>
+          <h1>
+            Product unavailable
+          </h1>
 
           <p>
-            {pageError || "This product could not be found."}
+            {pageError ||
+              "This product could not be found."}
           </p>
 
-          <button onClick={() => router.push("/")}>
+          <button
+            onClick={() =>
+              router.push("/")
+            }
+          >
             Back to PETORA
           </button>
         </div>
@@ -556,7 +869,8 @@ export default function ProductCheckoutPage() {
             padding: 45px;
             border-radius: 24px;
             text-align: center;
-            box-shadow: 0 20px 60px rgba(0,0,0,.08);
+            box-shadow:
+              0 20px 60px rgba(0, 0, 0, 0.08);
           }
 
           .logo {
@@ -591,50 +905,85 @@ export default function ProductCheckoutPage() {
     );
   }
 
-  /* =====================================================
-     SUCCESS
-  ===================================================== */
+  /*
+   * =========================================================
+   * SUCCESS
+   * =========================================================
+   */
 
   if (success) {
     return (
       <main className="page">
         <div className="success-card">
-          <div className="success-icon">✓</div>
+          <div className="success-icon">
+            ✓
+          </div>
 
           <div className="eyebrow">
             PETORA™ STORE
           </div>
 
-          <h1>Payment Successful</h1>
+          <h1>
+            Payment Successful
+          </h1>
 
           <p>
             Your full payment for{" "}
-            <strong>{product.product_name}</strong>{" "}
+            <strong>
+              {product.product_name}
+            </strong>{" "}
             has been successfully verified.
           </p>
 
           <div className="details">
             <div>
-              <span>Product</span>
+              <span>
+                Product
+              </span>
+
               <strong>
                 {product.product_name}
               </strong>
             </div>
 
             <div>
-              <span>Amount Paid</span>
-              <strong>{priceText}</strong>
+              <span>
+                Pack
+              </span>
+
+              <strong>
+                {product.unit}
+              </strong>
+            </div>
+
+            <div>
+              <span>
+                Amount Paid
+              </span>
+
+              <strong>
+                {priceText}
+              </strong>
             </div>
 
             {paymentId && (
               <div>
-                <span>Payment ID</span>
-                <strong>{paymentId}</strong>
+                <span>
+                  Payment ID
+                </span>
+
+                <strong>
+                  {paymentId}
+                </strong>
               </div>
             )}
           </div>
 
-          <button onClick={() => router.push("/")}>
+          <button
+            onClick={() =>
+              router.push("/")
+            }
+          >
             Return to PETORA
           </button>
         </div>
@@ -656,7 +1005,8 @@ export default function ProductCheckoutPage() {
             padding: 50px;
             border-radius: 28px;
             text-align: center;
-            box-shadow: 0 25px 70px rgba(0,0,0,.1);
+            box-shadow:
+              0 25px 70px rgba(0, 0, 0, 0.1);
           }
 
           .success-icon {
@@ -731,9 +1081,11 @@ export default function ProductCheckoutPage() {
     );
   }
 
-  /* =====================================================
-     CHECKOUT
-  ===================================================== */
+  /*
+   * =========================================================
+   * CHECKOUT
+   * =========================================================
+   */
 
   return (
     <main className="page">
@@ -742,41 +1094,106 @@ export default function ProductCheckoutPage() {
         <button
           className="back"
           type="button"
-          onClick={() => router.push("/")}
+          onClick={() =>
+            router.push("/")
+          }
         >
           ← Back to PETORA
         </button>
 
         <div className="grid">
 
-          {/* PRODUCT */}
+          {/* =================================================
+              PRODUCT SECTION
+              ================================================= */}
+
           <section className="product-card">
 
-            <div className="image-box">
-              {imageSrc ? (
-                <img
-                  src={imageSrc}
-                  alt={
-                    product.product_name ||
-                    "PETORA Product"
-                  }
-                  onError={(event) => {
-                    event.currentTarget.style.display =
-                      "none";
-                  }}
-                />
-              ) : (
-                <div className="placeholder">
-                  PETORA™
+            <div className="gallery">
+
+              {/* MAIN IMAGE */}
+
+              <div className="image-box">
+
+                {imageSrc ? (
+                  <img
+                    key={imageSrc}
+                    src={imageSrc}
+                    alt={
+                      product.product_name ||
+                      "PETORA Product"
+                    }
+                    onError={(event) => {
+                      /*
+                       * If an optional gallery image
+                       * has not been added yet, hide it.
+                       */
+                      if (
+                        safeActiveImage !== 0
+                      ) {
+                        event.currentTarget.style.display =
+                          "none";
+                      }
+                    }}
+                  />
+                ) : (
+                  <div className="placeholder">
+                    PETORA™
+                  </div>
+                )}
+
+              </div>
+
+              {/* THUMBNAILS */}
+
+              {galleryImages.length > 1 && (
+                <div className="thumbnail-row">
+
+                  {galleryImages.map(
+                    (image, index) => (
+                      <button
+                        key={image}
+                        type="button"
+                        className={
+                          index ===
+                          safeActiveImage
+                            ? "thumbnail active"
+                            : "thumbnail"
+                        }
+                        onClick={() => {
+                          setActiveImage(index);
+                        }}
+                      >
+                        <img
+                          src={image}
+                          alt={`Product view ${
+                            index + 1
+                          }`}
+                          onError={(
+                            event
+                          ) => {
+                            event.currentTarget.style.display =
+                              "none";
+                          }}
+                        />
+                      </button>
+                    )
+                  )}
+
                 </div>
               )}
+
             </div>
 
             <div className="product-info">
 
               <div className="eyebrow">
-                {clean(product.subcategory) ||
-                  clean(product.category) ||
+                {clean(
+                  product.subcategory
+                ) ||
+                  clean(
+                    product.category
+                  ) ||
                   "PET PRODUCTS"}
               </div>
 
@@ -785,7 +1202,9 @@ export default function ProductCheckoutPage() {
               </h1>
 
               <p className="brand">
-                by {product.brand || "PETORA"}
+                by{" "}
+                {product.brand ||
+                  "PETORA"}
               </p>
 
               <p className="description">
@@ -793,34 +1212,100 @@ export default function ProductCheckoutPage() {
                   "Quality product for your pet."}
               </p>
 
-              <div className="price">
-                {priceText}
+              {/* ROYAL CANIN VARIANTS */}
 
-                {Number(product.mrp) >
-                  Number(product.price) && (
-                  <del>
-                    {money(product.mrp)}
-                  </del>
+              {isRoyalCaninFamily(
+                productId
+              ) && (
+                <div className="variant-section">
+
+                  <div className="variant-title">
+                    Choose pack size
+                  </div>
+
+                  <div className="variant-grid">
+
+                    {royalCaninVariants.map(
+                      (variant) => {
+                        const selected =
+                          targetProductId.toUpperCase() ===
+                          variant.id.toUpperCase();
+
+                        return (
+                          <button
+                            key={variant.id}
+                            type="button"
+                            className={
+                              selected
+                                ? "variant-button selected"
+                                : "variant-button"
+                            }
+                            onClick={() =>
+                              selectVariant(
+                                variant.id
+                              )
+                            }
+                          >
+                            {variant.label}
+                          </button>
+                        );
+                      }
+                    )}
+
+                  </div>
+
+                </div>
+              )}
+
+              {/* PRICE */}
+
+              <div className="price-row">
+
+                <div className="price">
+                  {priceText}
+                </div>
+
+                {hasDiscount && (
+                  <>
+                    <del>
+                      {mrpText}
+                    </del>
+
+                    <span className="discount">
+                      {discountPercent}% OFF
+                    </span>
+                  </>
                 )}
+
               </div>
 
               {product.unit && (
                 <p className="unit">
-                  Unit: {product.unit}
+                  Unit:{" "}
+                  {product.unit}
                 </p>
               )}
 
               <div className="full-payment">
-                <strong>Full payment</strong>
+
+                <strong>
+                  Full payment
+                </strong>
+
                 <span>
-                  No booking deposit • No partial payment
+                  No booking deposit •
+                  No partial payment
                 </span>
+
               </div>
 
             </div>
           </section>
 
-          {/* CHECKOUT */}
+          {/* =================================================
+              CHECKOUT SECTION
+              ================================================= */}
+
           <section className="checkout-card">
 
             <div className="eyebrow">
@@ -834,25 +1319,49 @@ export default function ProductCheckoutPage() {
             </h2>
 
             <p className="intro">
-              Enter your details below. The
-              payment amount is taken from
-              the current PETORA Products
-              inventory.
+              Enter your details below.
+              The payment amount is
+              taken from the current
+              PETORA Products inventory.
             </p>
 
+            {isRoyalCaninFamily(
+              productId
+            ) && (
+              <div className="selected-pack">
+                <span>
+                  Selected pack
+                </span>
+
+                <strong>
+                  {product.unit}
+                </strong>
+              </div>
+            )}
+
             <div className="total">
-              <span>Total purchase price</span>
-              <strong>{priceText}</strong>
+
+              <span>
+                Total purchase price
+              </span>
+
+              <strong>
+                {priceText}
+              </strong>
+
             </div>
 
             <form onSubmit={payNow}>
 
               <label>
                 Full name
+
                 <input
                   value={name}
                   onChange={(event) =>
-                    setName(event.target.value)
+                    setName(
+                      event.target.value
+                    )
                   }
                   placeholder="Your full name"
                   autoComplete="name"
@@ -861,6 +1370,7 @@ export default function ProductCheckoutPage() {
 
               <label>
                 Phone number
+
                 <input
                   value={phone}
                   onChange={(event) =>
@@ -878,11 +1388,14 @@ export default function ProductCheckoutPage() {
 
               <label>
                 Email address
+
                 <input
                   type="email"
                   value={email}
                   onChange={(event) =>
-                    setEmail(event.target.value)
+                    setEmail(
+                      event.target.value
+                    )
                   }
                   placeholder="you@example.com"
                   autoComplete="email"
@@ -891,10 +1404,13 @@ export default function ProductCheckoutPage() {
 
               <label>
                 Delivery address
+
                 <textarea
                   value={address}
                   onChange={(event) =>
-                    setAddress(event.target.value)
+                    setAddress(
+                      event.target.value
+                    )
                   }
                   placeholder="Enter your complete delivery address"
                   rows={4}
@@ -923,6 +1439,7 @@ export default function ProductCheckoutPage() {
               </div>
 
             </form>
+
           </section>
 
         </div>
@@ -933,7 +1450,10 @@ export default function ProductCheckoutPage() {
           min-height: 100vh;
           background: #f6f0e5;
           color: #30443f;
-          font-family: Arial, Helvetica, sans-serif;
+          font-family:
+            Arial,
+            Helvetica,
+            sans-serif;
           padding: 40px 20px 70px;
           box-sizing: border-box;
         }
@@ -956,7 +1476,9 @@ export default function ProductCheckoutPage() {
 
         .grid {
           display: grid;
-          grid-template-columns: 1.05fr .95fr;
+          grid-template-columns:
+            1.05fr
+            0.95fr;
           gap: 28px;
           align-items: start;
         }
@@ -966,7 +1488,18 @@ export default function ProductCheckoutPage() {
           background: white;
           border-radius: 28px;
           overflow: hidden;
-          box-shadow: 0 20px 60px rgba(0,0,0,.07);
+          box-shadow:
+            0 20px 60px
+              rgba(0, 0, 0, 0.07);
+        }
+
+        /* =========================
+           GALLERY
+           ========================= */
+
+        .gallery {
+          background: #edf7f3;
+          padding: 18px;
         }
 
         .image-box {
@@ -976,6 +1509,7 @@ export default function ProductCheckoutPage() {
           align-items: center;
           justify-content: center;
           overflow: hidden;
+          border-radius: 18px;
         }
 
         .image-box img {
@@ -991,6 +1525,44 @@ export default function ProductCheckoutPage() {
           font-weight: 900;
         }
 
+        .thumbnail-row {
+          display: grid;
+          grid-template-columns:
+            repeat(5, 1fr);
+          gap: 10px;
+          margin-top: 12px;
+        }
+
+        .thumbnail {
+          height: 72px;
+          padding: 5px;
+          border: 2px solid
+            transparent;
+          background: white;
+          border-radius: 12px;
+          cursor: pointer;
+          overflow: hidden;
+        }
+
+        .thumbnail.active {
+          border-color: #087c68;
+          box-shadow:
+            0 5px 18px
+              rgba(8, 124, 104, 0.16);
+        }
+
+        .thumbnail img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          border-radius: 8px;
+          display: block;
+        }
+
+        /* =========================
+           PRODUCT INFORMATION
+           ========================= */
+
         .product-info {
           padding: 34px;
         }
@@ -1005,9 +1577,17 @@ export default function ProductCheckoutPage() {
 
         .product-info h1 {
           color: #075f50;
-          font-family: Georgia, "Times New Roman", serif;
-          font-size: clamp(42px, 5vw, 66px);
-          line-height: .95;
+          font-family:
+            Georgia,
+            "Times New Roman",
+            serif;
+          font-size:
+            clamp(
+              42px,
+              5vw,
+              66px
+            );
+          line-height: 0.95;
           letter-spacing: -2px;
           margin: 12px 0;
         }
@@ -1024,17 +1604,86 @@ export default function ProductCheckoutPage() {
           font-size: 16px;
         }
 
+        /* =========================
+           VARIANTS
+           ========================= */
+
+        .variant-section {
+          margin-top: 28px;
+        }
+
+        .variant-title {
+          color: #17685b;
+          font-size: 14px;
+          font-weight: 900;
+          margin-bottom: 10px;
+        }
+
+        .variant-grid {
+          display: grid;
+          grid-template-columns:
+            repeat(4, 1fr);
+          gap: 10px;
+        }
+
+        .variant-button {
+          border: 1px solid
+            #d7e5df;
+          background: white;
+          color: #17685b;
+          border-radius: 12px;
+          padding: 13px 8px;
+          font-weight: 900;
+          cursor: pointer;
+          transition:
+            0.2s ease;
+        }
+
+        .variant-button:hover {
+          border-color: #087c68;
+        }
+
+        .variant-button.selected {
+          background: #087c68;
+          border-color: #087c68;
+          color: white;
+          box-shadow:
+            0 8px 20px
+              rgba(8, 124, 104, 0.18);
+        }
+
+        /* =========================
+           PRICE
+           ========================= */
+
+        .price-row {
+          display: flex;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 12px;
+          margin-top: 25px;
+        }
+
         .price {
           color: #087c68;
           font-size: 34px;
           font-weight: 900;
-          margin-top: 25px;
         }
 
-        .price del {
+        .price-row del {
           color: #8c9692;
           font-size: 17px;
-          margin-left: 14px;
+        }
+
+        .discount {
+          background: #fff3d9;
+          color: #b78327;
+          border: 1px solid
+            #efd69c;
+          border-radius: 999px;
+          padding: 7px 12px;
+          font-size: 13px;
+          font-weight: 900;
         }
 
         .unit {
@@ -1059,15 +1708,27 @@ export default function ProductCheckoutPage() {
           color: #087c68;
         }
 
+        /* =========================
+           CHECKOUT
+           ========================= */
+
         .checkout-card {
           padding: 38px;
         }
 
         .checkout-card h2 {
           color: #075f50;
-          font-family: Georgia, "Times New Roman", serif;
-          font-size: clamp(46px, 5vw, 62px);
-          line-height: .94;
+          font-family:
+            Georgia,
+            "Times New Roman",
+            serif;
+          font-size:
+            clamp(
+              46px,
+              5vw,
+              62px
+            );
+          line-height: 0.94;
           letter-spacing: -2px;
           margin: 14px 0 20px;
         }
@@ -1076,6 +1737,30 @@ export default function ProductCheckoutPage() {
           color: #687671;
           line-height: 1.6;
           margin-bottom: 24px;
+        }
+
+        .selected-pack {
+          background: #f3faf7;
+          border: 1px solid
+            #d7e9e2;
+          border-radius: 14px;
+          padding: 15px 17px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 15px;
+          margin-bottom: 12px;
+        }
+
+        .selected-pack span {
+          color: #687671;
+          font-size: 14px;
+          font-weight: 800;
+        }
+
+        .selected-pack strong {
+          color: #087c68;
+          font-size: 15px;
         }
 
         .total {
@@ -1119,7 +1804,8 @@ export default function ProductCheckoutPage() {
         textarea {
           width: 100%;
           box-sizing: border-box;
-          border: 1px solid #d7e5df;
+          border: 1px solid
+            #d7e5df;
           border-radius: 12px;
           padding: 14px;
           color: #243c36;
@@ -1132,7 +1818,14 @@ export default function ProductCheckoutPage() {
         input:focus,
         textarea:focus {
           border-color: #087c68;
-          box-shadow: 0 0 0 3px rgba(8,124,104,.1);
+          box-shadow:
+            0 0 0 3px
+              rgba(
+                8,
+                124,
+                104,
+                0.1
+              );
         }
 
         textarea {
@@ -1141,7 +1834,8 @@ export default function ProductCheckoutPage() {
 
         .error {
           background: #fff1f0;
-          border: 1px solid #efc9c5;
+          border: 1px solid
+            #efc9c5;
           color: #a23a32;
           border-radius: 12px;
           padding: 13px;
@@ -1162,7 +1856,7 @@ export default function ProductCheckoutPage() {
         }
 
         .pay:disabled {
-          opacity: .65;
+          opacity: 0.65;
           cursor: wait;
         }
 
@@ -1179,9 +1873,32 @@ export default function ProductCheckoutPage() {
           }
         }
 
+        @media (max-width: 650px) {
+          .variant-grid {
+            grid-template-columns:
+              repeat(2, 1fr);
+          }
+
+          .thumbnail-row {
+            grid-template-columns:
+              repeat(5, 1fr);
+          }
+
+          .thumbnail {
+            height: 58px;
+          }
+        }
+
         @media (max-width: 520px) {
           .page {
-            padding: 25px 14px 50px;
+            padding:
+              25px
+              14px
+              50px;
+          }
+
+          .gallery {
+            padding: 10px;
           }
 
           .image-box {
@@ -1190,7 +1907,25 @@ export default function ProductCheckoutPage() {
 
           .product-info,
           .checkout-card {
-            padding: 25px 20px;
+            padding:
+              25px
+              20px;
+          }
+
+          .product-info h1 {
+            font-size: 42px;
+          }
+
+          .checkout-card h2 {
+            font-size: 46px;
+          }
+
+          .thumbnail {
+            height: 52px;
+          }
+
+          .price {
+            font-size: 30px;
           }
         }
       `}</style>

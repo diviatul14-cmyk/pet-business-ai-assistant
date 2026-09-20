@@ -55,7 +55,11 @@ function getConfig() {
 }
 
 async function getProducts(): Promise<ProductRecord[]> {
-  const { clientEmail, privateKey, spreadsheetId } = getConfig();
+  const {
+    clientEmail,
+    privateKey,
+    spreadsheetId,
+  } = getConfig();
 
   const auth = new google.auth.GoogleAuth({
     credentials: {
@@ -72,10 +76,11 @@ async function getProducts(): Promise<ProductRecord[]> {
     auth,
   });
 
-  const response = await sheets.spreadsheets.values.get({
-    spreadsheetId,
-    range: "Products!A:Z",
-  });
+  const response =
+    await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: "Products!A:Z",
+    });
 
   const rows = response.data.values ?? [];
 
@@ -115,6 +120,16 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
 
+    /*
+     * IMPORTANT:
+     *
+     * The browser sends ONLY the product ID.
+     *
+     * We deliberately DO NOT accept price/amount
+     * from the browser.
+     *
+     * The real price always comes from Google Sheets.
+     */
     const productId = clean(body?.product_id);
 
     if (!productId) {
@@ -127,21 +142,45 @@ export async function POST(request: Request) {
       );
     }
 
-    const razorpayKeyId = process.env.RAZORPAY_KEY_ID;
-    const razorpayKeySecret = process.env.RAZORPAY_KEY_SECRET;
+    /*
+     * Razorpay server credentials
+     */
+    const razorpayKeyId =
+      process.env.RAZORPAY_KEY_ID;
+
+    const razorpayKeySecret =
+      process.env.RAZORPAY_KEY_SECRET;
+
+    const razorpayPublicKey =
+      process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID ||
+      razorpayKeyId;
 
     if (!razorpayKeyId || !razorpayKeySecret) {
       return NextResponse.json(
         {
           success: false,
-          error: "Razorpay server credentials are missing.",
+          error:
+            "Razorpay server credentials are missing.",
         },
         { status: 500 }
       );
     }
 
+    /*
+     * Load current Products inventory
+     * directly from Google Sheets.
+     */
     const products = await getProducts();
 
+    /*
+     * Match the exact product/variant ID.
+     *
+     * Examples:
+     * PF001-800G
+     * PF001-1.1KG
+     * PF001-4KG
+     * PF001-8KG
+     */
     const product = products.find(
       (item) =>
         clean(item.product_id).toLowerCase() ===
@@ -158,80 +197,156 @@ export async function POST(request: Request) {
       );
     }
 
+    /*
+     * Read the actual price from Google Sheets.
+     */
     const productPrice = parsePrice(product.price);
 
     if (productPrice <= 0) {
       return NextResponse.json(
         {
           success: false,
-          error: `Invalid price for ${product.product_name}.`,
+          error:
+            `Invalid price for ${product.product_name}.`,
         },
         { status: 400 }
       );
     }
 
+    /*
+     * Check inventory availability.
+     */
     const stock = clean(product.stock).toLowerCase();
     const status = clean(product.status).toLowerCase();
 
-    if (
+    const unavailable =
       stock === "0" ||
       stock === "out of stock" ||
       stock === "sold out" ||
       status === "out of stock" ||
       status === "inactive" ||
-      status === "unavailable"
-    ) {
+      status === "unavailable";
+
+    if (unavailable) {
       return NextResponse.json(
         {
           success: false,
-          error: `${product.product_name} is currently out of stock.`,
+          error:
+            `${product.product_name} is currently out of stock.`,
         },
         { status: 409 }
       );
     }
 
     /*
+     * =====================================================
      * PETORA PRODUCT PAYMENT RULE
+     * =====================================================
      *
-     * Charge the COMPLETE product price
-     * from the Products Google Sheet.
+     * Charge 100% of the product price.
      *
-     * No deposit.
-     * No advance payment.
-     * No partial payment.
+     * NO booking deposit.
+     * NO advance payment.
+     * NO partial payment.
+     *
+     * Price comes ONLY from Google Sheets.
      */
-    const amountInPaise = Math.round(productPrice * 100);
+    const amountInPaise = Math.round(
+      productPrice * 100
+    );
 
+    /*
+     * Create Razorpay server client.
+     */
     const razorpay = new Razorpay({
       key_id: razorpayKeyId,
       key_secret: razorpayKeySecret,
     });
 
+    /*
+     * Create Razorpay order.
+     */
     const order = await razorpay.orders.create({
       amount: amountInPaise,
       currency: "INR",
-      receipt: `PETORA-PRODUCT-${productId}-${Date.now()}`,
+
+      receipt:
+        `PETORA-PRODUCT-${product.product_id}-${Date.now()}`,
+
       notes: {
-        purchase_type: "PETORA_PRODUCT_FULL_PAYMENT",
-        product_id: product.product_id,
-        product_name: product.product_name,
-        product_price: String(productPrice),
+        purchase_type:
+          "PETORA_PRODUCT_FULL_PAYMENT",
+
+        product_id:
+          product.product_id,
+
+        product_name:
+          product.product_name,
+
+        product_price:
+          String(productPrice),
+
+        product_unit:
+          product.unit,
+
+        product_brand:
+          product.brand,
       },
     });
 
+    /*
+     * Return ONLY the information the frontend needs.
+     *
+     * The amount here is the amount already created
+     * on Razorpay's server.
+     */
     return NextResponse.json({
       success: true,
+
       order_id: order.id,
+
       amount: amountInPaise,
+
       currency: "INR",
-      key_id: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+
+      key_id: razorpayPublicKey,
 
       product: {
-        product_id: product.product_id,
-        product_name: product.product_name,
-        brand: product.brand,
-        price: productPrice,
-        image: product.image,
+        product_id:
+          product.product_id,
+
+        product_name:
+          product.product_name,
+
+        brand:
+          product.brand,
+
+        category:
+          product.category,
+
+        subcategory:
+          product.subcategory,
+
+        price:
+          productPrice,
+
+        mrp:
+          parsePrice(product.mrp),
+
+        stock:
+          product.stock,
+
+        unit:
+          product.unit,
+
+        image:
+          product.image,
+
+        description:
+          product.description,
+
+        status:
+          product.status,
       },
     });
   } catch (error) {

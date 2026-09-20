@@ -254,16 +254,6 @@ export default function Home() {
 
   const [selectedPetId, setSelectedPetId] = useState("");
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const petFromUrl = params.get("pet");
-
-    if (petFromUrl) {
-      setSelectedPetId(petFromUrl);
-    }
-  }, []);
-    useState("");
-
   const [formMessage, setFormMessage] =
     useState("");
 
@@ -1239,13 +1229,14 @@ export default function Home() {
                   )}
                 </div>
 
-          <a
-            className="petora-order-button"
-            href={`/product-checkout/${encodeURIComponent(product.product_id)}`}
-          >
-            Buy Now & Pay Online
-            <span>→</span>
-          </a>
+                <a
+                  className="petora-order-button"
+                  href={`/product-checkout/${encodeURIComponent(product.product_id)}`}
+                >
+                  Buy Now & Pay Online
+                  <span>→</span>
+                </a>
+
               </div>
             </article>
           );
@@ -1793,7 +1784,6 @@ export default function Home() {
           </span>
 
           <h2>
-            Ready to meet your companion?
           </h2>
 
           <p>
