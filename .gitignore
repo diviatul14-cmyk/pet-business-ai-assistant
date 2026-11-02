@@ -12,3 +12,5 @@ GROIFY PROJECT/
 UBN PROJECT/
 instaram inf project/
 app_backup.py
+.vercel
+.env*

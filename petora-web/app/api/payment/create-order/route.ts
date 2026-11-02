@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { google } from "googleapis";
 import Razorpay from "razorpay";
 
-type ProductRow = Record<string, string>;
+export const dynamic = "force-dynamic";
+
+type InventoryRow = Record<string, string>;
 
 function clean(value: unknown): string {
   return String(value ?? "").trim();
@@ -16,23 +18,32 @@ function normalizeKey(value: unknown): string {
 }
 
 function parsePrice(value: unknown): number {
-  const cleaned = clean(value).replace(/[₹,\s]/g, "");
-  const number = Number(cleaned);
+  const number = Number(
+    clean(value).replace(/[₹,\s]/g, "")
+  );
 
-  if (!Number.isFinite(number) || number <= 0) {
-    return 0;
-  }
-
-  return number;
+  return Number.isFinite(number) && number > 0
+    ? number
+    : 0;
 }
 
-async function getProducts(): Promise<ProductRow[]> {
-  const auth = new google.auth.GoogleAuth({
-    credentials: {
-      client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-      private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
-    },
-    scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+async function getInventory(): Promise<InventoryRow[]> {
+  const clientEmail = process.env.GOOGLE_CLIENT_EMAIL;
+  const privateKey = process.env.GOOGLE_PRIVATE_KEY;
+  const spreadsheetId = process.env.GOOGLE_SHEET_ID;
+
+  if (!clientEmail || !privateKey || !spreadsheetId) {
+    throw new Error(
+      "Google Sheets credentials are not fully configured."
+    );
+  }
+
+  const auth = new google.auth.JWT({
+    email: clientEmail,
+    key: privateKey.replace(/\\n/g, "\n"),
+    scopes: [
+      "https://www.googleapis.com/auth/spreadsheets.readonly",
+    ],
   });
 
   const sheets = google.sheets({
@@ -40,15 +51,9 @@ async function getProducts(): Promise<ProductRow[]> {
     auth,
   });
 
-  const spreadsheetId = process.env.GOOGLE_SHEET_ID;
-
-  if (!spreadsheetId) {
-    throw new Error("GOOGLE_SHEET_ID is missing.");
-  }
-
   const response = await sheets.spreadsheets.values.get({
     spreadsheetId,
-    range: "Products!A:Z",
+    range: "Inventory!A:Z",
   });
 
   const rows = response.data.values ?? [];
@@ -57,83 +62,75 @@ async function getProducts(): Promise<ProductRow[]> {
     return [];
   }
 
-  const headers = rows[0].map((header) => normalizeKey(header));
+  const headers = rows[0].map(normalizeKey);
 
   return rows.slice(1).map((row) => {
-    const product: ProductRow = {};
+    const item: InventoryRow = {};
 
     headers.forEach((header, index) => {
-      product[header] = clean(row[index]);
+      if (header) {
+        item[header] = clean(row[index]);
+      }
     });
 
-    return product;
+    return item;
   });
 }
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+    const petId = clean(body?.pet_id);
 
-    const productId = clean(body?.product_id).toUpperCase();
-
-    if (!productId) {
+    if (!petId) {
       return NextResponse.json(
-        {
-          success: false,
-          error: "Product ID is required.",
-        },
+        { success: false, error: "Pet ID is required." },
         { status: 400 }
       );
     }
 
-    const products = await getProducts();
+    const inventory = await getInventory();
 
-    const product = products.find(
+    const pet = inventory.find(
       (item) =>
-        clean(item.product_id).toUpperCase() === productId
+        clean(item.pet_id).toLowerCase() === petId.toLowerCase()
     );
 
-    if (!product) {
+    if (!pet) {
       return NextResponse.json(
-        {
-          success: false,
-          error: `Product ${productId} was not found in the Products sheet.`,
-        },
+        { success: false, error: "Pet not found in Inventory." },
         { status: 404 }
       );
     }
 
-    const productPrice = parsePrice(
-      product.price ||
-        product.sale_price ||
-        product.selling_price ||
-        product.amount
-    );
-
-    if (!productPrice) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: `Price for product ${productId} is missing or invalid in the Products sheet.`,
-        },
-        { status: 400 }
-      );
-    }
-
-    const status = clean(
-      product.status || product.availability || "available"
-    ).toLowerCase();
+    const status = clean(pet.status).toLowerCase();
 
     if (
-      status === "sold" ||
-      status === "unavailable" ||
-      status === "out_of_stock" ||
-      status === "out of stock"
+      [
+        "sold",
+        "unavailable",
+        "out_of_stock",
+        "out of stock",
+      ].includes(status)
     ) {
       return NextResponse.json(
         {
           success: false,
-          error: "This product is currently unavailable.",
+          error: "This pet is no longer available for booking.",
+        },
+        { status: 409 }
+      );
+    }
+
+    const petPrice = parsePrice(
+      pet.price_inr || pet.price || pet.sale_price
+    );
+
+    if (!petPrice) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Pet price is missing or invalid in Inventory.",
         },
         { status: 400 }
       );
@@ -143,12 +140,8 @@ export async function POST(request: Request) {
     const keySecret = process.env.RAZORPAY_KEY_SECRET;
 
     if (!keyId || !keySecret) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Razorpay server credentials are not configured.",
-        },
-        { status: 500 }
+      throw new Error(
+        "Razorpay server credentials are not configured."
       );
     }
 
@@ -157,58 +150,43 @@ export async function POST(request: Request) {
       key_secret: keySecret,
     });
 
-    const amountInPaise = Math.round(productPrice * 100);
+    const amountInPaise = Math.round(petPrice * 100);
 
     const order = await razorpay.orders.create({
       amount: amountInPaise,
       currency: "INR",
-      receipt: `PETORA-${productId}-${Date.now()}`,
+      receipt: `PETORA-${petId}-${Date.now()}`
+        .replace(/[^a-zA-Z0-9_-]/g, "")
+        .slice(0, 40),
       notes: {
-        purchase_type: "PETORA_PRODUCT_FULL_PAYMENT",
-        product_id: productId,
-        product_name: clean(
-          product.product_name ||
-            product.name ||
-            product.title ||
-            product.product
-        ),
-        product_price: String(productPrice),
+        booking_type: "PETORA_FULL_PAYMENT",
+        pet_id: pet.pet_id,
+        pet_name: clean(pet.name || pet.pet_id),
+        pet_price: String(petPrice),
       },
     });
 
     return NextResponse.json({
       success: true,
       order_id: order.id,
-      amount: amountInPaise,
-      currency: "INR",
-      key_id: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-      product: {
-        id: productId,
-        product_id: productId,
-        name: clean(
-          product.product_name ||
-            product.name ||
-            product.title ||
-            product.product
-        ),
-        price: productPrice,
-        image: clean(
-          product.image ||
-            product.photo ||
-            product.product_image
-        ),
+      amount: order.amount,
+      currency: order.currency,
+      key_id:
+        process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || keyId,
+      pet: {
+        id: pet.pet_id,
+        name: clean(pet.name || pet.pet_id),
+        breed: clean(pet.breed),
+        price: petPrice,
       },
     });
   } catch (error: unknown) {
-    console.error("PRODUCT CREATE ORDER ERROR:", error);
+    console.error("PETORA booking create-order error:", error);
 
     return NextResponse.json(
       {
         success: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : "Unable to create product payment order.",
+        error: "Unable to create the PETORA booking payment order.",
       },
       { status: 500 }
     );

@@ -1,3 +1,4 @@
+
 import { NextResponse } from "next/server";
 import { google } from "googleapis";
 
@@ -16,6 +17,11 @@ type InventoryRow = {
   vaccinated: string;
   location: string;
   photo: string;
+  gallery_1: string;
+  gallery_2: string;
+  gallery_3: string;
+  gallery_4: string;
+  gallery_5: string;
   description: string;
 };
 
@@ -56,9 +62,7 @@ function clean(value: unknown): string {
   return String(value ?? "").trim();
 }
 
-function normalizeInventory(
-  rows: string[][]
-): InventoryRow[] {
+function normalizeInventory(rows: string[][]): InventoryRow[] {
   if (!rows || rows.length === 0) {
     return [];
   }
@@ -69,16 +73,12 @@ function normalizeInventory(
       .replace(/\s+/g, "_")
   );
 
-  const indexOf = (name: string) =>
-    headers.indexOf(name);
+  const indexOf = (name: string) => headers.indexOf(name);
 
   return rows.slice(1).map((row) => {
     const value = (column: string): string => {
       const index = indexOf(column);
-
-      return index >= 0
-        ? clean(row[index])
-        : "";
+      return index >= 0 ? clean(row[index]) : "";
     };
 
     return {
@@ -89,11 +89,16 @@ function normalizeInventory(
       name: value("name"),
       gender: value("gender"),
       age: value("age"),
-      price: value("price"),
+      price: value("price_inr") || value("price"),
       status: value("status"),
       vaccinated: value("vaccinated"),
       location: value("location"),
       photo: value("photo"),
+      gallery_1: value("gallery_1"),
+      gallery_2: value("gallery_2"),
+      gallery_3: value("gallery_3"),
+      gallery_4: value("gallery_4"),
+      gallery_5: value("gallery_5"),
       description: value("description"),
     };
   });
@@ -101,35 +106,24 @@ function normalizeInventory(
 
 /**
  * GET /api/pets
- *
  * Reads the live Inventory worksheet.
  */
 export async function GET() {
   try {
     const auth = getGoogleAuth();
-
-    const sheets = google.sheets({
-      version: "v4",
-      auth,
-    });
-
+    const sheets = google.sheets({ version: "v4", auth });
     const spreadsheetId = getSheetId();
 
-    const response =
-      await sheets.spreadsheets.values.get({
-        spreadsheetId,
-        range: "Inventory!A:Z",
-      });
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: "Inventory!A:Z",
+    });
 
-    const rows = response.data.values ?? [];
-
-    const inventory =
-      normalizeInventory(rows);
+    const inventory = normalizeInventory(response.data.values ?? []);
 
     const availablePets = inventory
       .filter((pet) => {
-        const status =
-          pet.status.toLowerCase();
+        const status = pet.status.trim().toLowerCase();
 
         return (
           pet.pet_id &&
@@ -137,78 +131,68 @@ export async function GET() {
           status !== "unavailable"
         );
       })
-      .map((pet) => ({
-        id: pet.pet_id,
-        puppy_id: pet.pet_id,
+      .map((pet) => {
+        // Keep every non-empty photo path, in gallery order.
+        const images = [
+          pet.photo,
+          pet.gallery_1,
+          pet.gallery_2,
+          pet.gallery_3,
+          pet.gallery_4,
+          pet.gallery_5,
+        ].filter(Boolean).filter(
+          (image, index, all) => all.indexOf(image) === index
+        );
 
-        category:
-          pet.category || "Dogs",
+        // Existing pages can continue using the "image" field.
+        const mainImage = images[0] || "";
 
-        species:
-          pet.species || "Dog",
+        return {
+          id: pet.pet_id,
+          pet_id: pet.pet_id,
+          puppy_id: pet.pet_id,
 
-        breed: pet.breed,
+          category: pet.category || "Dogs",
+          species: pet.species || "Dog",
+          breed: pet.breed,
+          name: pet.name || pet.pet_id,
 
-        name:
-          pet.name || pet.pet_id,
+          gender: pet.gender,
+          age: pet.age,
+          age_weeks: pet.age.replace(/[^0-9]/g, ""),
+          price: pet.price,
+          status: pet.status || "Available",
+          vaccinated: pet.vaccinated,
+          location: pet.location,
 
-        gender: pet.gender,
+          // Main image for existing listing components.
+          image: mainImage,
+          photo: pet.photo || mainImage,
 
-        age: pet.age,
+          // All images for gallery/detail components.
+          images,
+          gallery_1: pet.gallery_1,
+          gallery_2: pet.gallery_2,
+          gallery_3: pet.gallery_3,
+          gallery_4: pet.gallery_4,
+          gallery_5: pet.gallery_5,
 
-        age_weeks:
-          pet.age.replace(
-            /[^0-9]/g,
-            ""
-          ),
+          description: pet.description,
+        };
+      });
 
-        price: pet.price,
-
-        status:
-          pet.status || "Available",
-
-        vaccinated:
-          pet.vaccinated,
-
-        location:
-          pet.location,
-
-        image:
-          pet.photo || "",
-
-        photo:
-          pet.photo || "",
-
-        description:
-          pet.description,
-      }));
-
-    return NextResponse.json(
-      availablePets,
-      {
-        status: 200,
-        headers: {
-          "Cache-Control":
-            "no-store",
-        },
-      }
-    );
+    return NextResponse.json(availablePets, {
+      status: 200,
+      headers: {
+        "Cache-Control": "no-store",
+      },
+    });
   } catch (error) {
-    console.error(
-      "PETORA GET inventory error:",
-      error
-    );
-
-    const details =
-      error instanceof Error
-        ? error.message
-        : String(error);
+    console.error("PETORA GET inventory error:", error);
 
     return NextResponse.json(
       {
-        error:
-          "Unable to load PETORA inventory.",
-        details,
+        error: "Unable to load PETORA inventory.",
       },
       { status: 500 }
     );
@@ -217,219 +201,113 @@ export async function GET() {
 
 /**
  * POST /api/pets
- *
- * Adds an enquiry to the live
- * Enquiries worksheet.
- *
- * The pet breed is automatically
- * looked up from Inventory using
- * the submitted pet ID.
+ * Adds an enquiry to the Enquiries worksheet.
  */
-export async function POST(
-  request: Request
-) {
+export async function POST(request: Request) {
   try {
-    const body =
-      await request.json();
+    const body = await request.json();
 
-    const name =
-      clean(body?.name);
-
-    const phone =
-      clean(body?.phone);
-
-    const petId =
-      clean(body?.pet_id);
-
-    const submittedBreed =
-      clean(body?.breed);
-
-    const message =
-      clean(body?.message);
+    const name = clean(body?.name);
+    const phone = clean(body?.phone);
+    const petId = clean(body?.pet_id);
+    const submittedBreed = clean(body?.breed);
+    const message = clean(body?.message);
 
     if (!name) {
       return NextResponse.json(
-        {
-          error:
-            "Name is required.",
-        },
+        { error: "Name is required." },
         { status: 400 }
       );
     }
 
     if (!phone) {
       return NextResponse.json(
-        {
-          error:
-            "Phone number is required.",
-        },
+        { error: "Phone number is required." },
         { status: 400 }
       );
     }
 
     if (!petId) {
       return NextResponse.json(
-        {
-          error:
-            "Pet ID is required.",
-        },
+        { error: "Pet ID is required." },
         { status: 400 }
       );
     }
 
-    const auth =
-      getGoogleAuth();
+    const auth = getGoogleAuth();
+    const sheets = google.sheets({ version: "v4", auth });
+    const spreadsheetId = getSheetId();
 
-    const sheets =
-      google.sheets({
-        version: "v4",
-        auth,
-      });
+    const inventoryResponse = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: "Inventory!A:Z",
+    });
 
-    const spreadsheetId =
-      getSheetId();
+    const inventory = normalizeInventory(
+      inventoryResponse.data.values ?? []
+    );
 
-    /*
-     * Look up the selected pet
-     * directly from Inventory.
-     */
-    const inventoryResponse =
-      await sheets.spreadsheets.values.get(
-        {
-          spreadsheetId,
-          range: "Inventory!A:Z",
-        }
-      );
+    const selectedPet = inventory.find(
+      (pet) => pet.pet_id.toLowerCase() === petId.toLowerCase()
+    );
 
-    const inventoryRows =
-      inventoryResponse.data.values ?? [];
-
-    const inventory =
-      normalizeInventory(
-        inventoryRows
-      );
-
-    const selectedPet =
-      inventory.find(
-        (pet) =>
-          pet.pet_id
-            .toLowerCase() ===
-          petId.toLowerCase()
-      );
-
-    /*
-     * Prefer the official breed
-     * from Inventory.
-     *
-     * If the pet cannot be found,
-     * use the breed supplied by
-     * the form as a fallback.
-     */
-    const breed =
-      selectedPet?.breed ||
-      submittedBreed;
-
-    /*
-     * Make sure the selected pet
-     * actually exists in Inventory.
-     */
     if (!selectedPet) {
       return NextResponse.json(
-        {
-          error:
-            "The selected PETORA listing could not be found.",
-        },
+        { error: "The selected PETORA listing could not be found." },
         { status: 400 }
       );
     }
 
-    /*
-     * Do not allow enquiries for
-     * sold or unavailable pets.
-     */
-    const petStatus =
-      selectedPet.status
-        .trim()
-        .toLowerCase();
+    const petStatus = selectedPet.status.trim().toLowerCase();
 
-    if (
-      petStatus === "sold" ||
-      petStatus === "unavailable"
-    ) {
+    if (petStatus === "sold" || petStatus === "unavailable") {
       return NextResponse.json(
-        {
-          error:
-            "This PETORA listing is no longer available.",
-        },
+        { error: "This PETORA listing is no longer available." },
         { status: 400 }
       );
     }
 
-    const now =
-      new Date().toISOString();
+    const breed = selectedPet.breed || submittedBreed;
+    const now = new Date().toISOString();
 
-    await sheets.spreadsheets.values.append(
-      {
-        spreadsheetId,
-
-        range:
-          "Enquiries!A:G",
-
-        valueInputOption:
-          "USER_ENTERED",
-
-        insertDataOption:
-          "INSERT_ROWS",
-
-        requestBody: {
-          values: [
-            [
-              now,
-              name,
-              phone,
-              selectedPet.pet_id,
-              breed,
-              message,
-              "New",
-            ],
+    await sheets.spreadsheets.values.append({
+      spreadsheetId,
+      range: "Enquiries!A:G",
+      valueInputOption: "USER_ENTERED",
+      insertDataOption: "INSERT_ROWS",
+      requestBody: {
+        values: [
+          [
+            now,
+            name,
+            phone,
+            selectedPet.pet_id,
+            breed,
+            message,
+            "New",
           ],
-        },
-      }
-    );
+        ],
+      },
+    });
 
     return NextResponse.json(
       {
         success: true,
-
-        message:
-          "Your PETORA enquiry has been submitted successfully.",
-
+        message: "Your PETORA enquiry has been submitted successfully.",
         pet: {
           id: selectedPet.pet_id,
-          name:
-            selectedPet.name,
-          breed:
-            selectedPet.breed,
+          name: selectedPet.name,
+          breed: selectedPet.breed,
         },
       },
       { status: 200 }
     );
   } catch (error) {
-    console.error(
-      "PETORA POST enquiry error:",
-      error
-    );
-
-    const details =
-      error instanceof Error
-        ? error.message
-        : String(error);
+    console.error("PETORA POST enquiry error:", error);
 
     return NextResponse.json(
       {
-        error:
-          "Unable to submit your enquiry right now.",
-        details,
+        error: "Unable to submit your enquiry right now.",
       },
       { status: 500 }
     );

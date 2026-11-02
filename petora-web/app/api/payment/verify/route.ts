@@ -49,17 +49,6 @@ function getSheetId() {
   return sheetId;
 }
 
-function parsePrice(value: string): number {
-  const cleaned = value.replace(/[₹,\s]/g, "");
-  const price = Number(cleaned);
-
-  if (!Number.isFinite(price) || price <= 0) {
-    throw new Error(`Invalid pet price: ${value}`);
-  }
-
-  return price;
-}
-
 function normalizeInventory(
   rows: string[][]
 ): InventoryRow[] {
@@ -88,7 +77,7 @@ function normalizeInventory(
       pet_id: value("pet_id"),
       name: value("name"),
       breed: value("breed"),
-      price: value("price"),
+      price: value("price_inr") || value("price"),
       status: value("status"),
       location: value("location"),
     };
@@ -171,7 +160,7 @@ async function ensureBookingsSheet(
 
   await sheets.spreadsheets.values.update({
     spreadsheetId,
-    range: "Bookings!A1:N1",
+    range: "Bookings!A1:O1",
     valueInputOption: "RAW",
     requestBody: {
       values: [
@@ -208,10 +197,10 @@ export async function POST(request: Request) {
       body?.customer_name
     );
     const customerPhone = clean(
-      body?.customer_phone
+      body?.customer_phone ?? body?.phone
     );
     const customerEmail = clean(
-      body?.customer_email
+      body?.customer_email ?? body?.email
     );
 
     const paymentId = clean(
@@ -268,7 +257,9 @@ export async function POST(request: Request) {
       normalizeInventory(inventoryRows);
 
     const pet = inventory.find(
-      (item) => item.pet_id === petId
+      (item) =>
+        clean(item.pet_id).toLowerCase() ===
+        petId.toLowerCase()
     );
 
     if (!pet) {
@@ -277,11 +268,6 @@ export async function POST(request: Request) {
         { status: 404 }
       );
     }
-
-    const petPrice = parsePrice(pet.price);
-    const expectedAmount = Math.round(
-      petPrice * 100
-    );
 
     const {
       client: razorpay,
@@ -340,8 +326,47 @@ export async function POST(request: Request) {
     }
 
     /*
-     * Confirm that this Razorpay order is for
-     * the exact current Inventory price.
+     * Validate the server-created booking order.
+     * Do not trust a price supplied by the browser
+     * or require the current Inventory price to be
+     * unchanged after the order was created.
+     */
+    const orderNotes = razorpayOrder.notes ?? {};
+    const orderPetId = clean(orderNotes.pet_id);
+    const orderBookingType = clean(
+      orderNotes.booking_type
+    );
+    const orderPetPriceText = clean(
+      orderNotes.pet_price
+    );
+    const petPrice = Number(
+      orderPetPriceText.replace(/[₹,\s]/g, "")
+    );
+
+    if (
+      orderBookingType !== "PETORA_FULL_PAYMENT" ||
+      !orderPetId ||
+      orderPetId.toLowerCase() !== petId.toLowerCase() ||
+      !orderPetPriceText ||
+      !Number.isFinite(petPrice) ||
+      petPrice <= 0
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Razorpay order does not contain valid PETORA booking details.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const expectedAmount = Math.round(
+      petPrice * 100
+    );
+
+    /*
+     * Confirm that the fetched order amount matches
+     * the price recorded in its server-created notes.
      */
     if (
       Number(razorpayOrder.amount) !==
@@ -350,7 +375,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error:
-            "Payment amount does not match the PETORA Inventory price.",
+            "Payment amount does not match the verified Razorpay order price.",
         },
         { status: 400 }
       );
@@ -445,7 +470,7 @@ export async function POST(request: Request) {
     const existingBookings =
       await sheets.spreadsheets.values.get({
         spreadsheetId,
-        range: "Bookings!A:N",
+        range: "Bookings!A:O",
       });
 
     const existingRows =
@@ -468,7 +493,7 @@ export async function POST(request: Request) {
 
       await sheets.spreadsheets.values.append({
         spreadsheetId,
-        range: "Bookings!A:N",
+        range: "Bookings!A:O",
         valueInputOption: "USER_ENTERED",
         insertDataOption: "INSERT_ROWS",
         requestBody: {
@@ -486,7 +511,7 @@ export async function POST(request: Request) {
               petPrice,
               petPrice,
               paymentId,
-          (payment as any).vpa || "",
+              (payment as any).vpa || "",
               serverOrderId,
               "CAPTURED",
             ],
@@ -520,16 +545,9 @@ export async function POST(request: Request) {
       error
     );
 
-    const details =
-      error instanceof Error
-        ? error.message
-        : String(error);
-
     return NextResponse.json(
       {
-        error:
-          "Unable to verify the PETORA payment.",
-        details,
+        error: "Unable to verify the PETORA payment.",
       },
       { status: 500 }
     );
