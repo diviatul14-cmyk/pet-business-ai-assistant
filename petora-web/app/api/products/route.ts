@@ -1,3 +1,4 @@
+
 import { google } from "googleapis";
 import { NextResponse } from "next/server";
 
@@ -25,7 +26,9 @@ async function getSheets() {
       client_email: clientEmail,
       private_key: privateKey,
     },
-    scopes: ["https://www.googleapis.com/auth/spreadsheets.readonly"],
+    scopes: [
+      "https://www.googleapis.com/auth/spreadsheets.readonly",
+    ],
   });
 
   return google.sheets({
@@ -38,6 +41,19 @@ function clean(value: unknown): string {
   return String(value ?? "").trim();
 }
 
+// Only allow secure web links in shopping fields.
+function safeHttpsUrl(value: unknown): string {
+  const raw = clean(value);
+  if (!raw) return "";
+
+  try {
+    const url = new URL(raw);
+    return url.protocol === "https:" ? url.toString() : "";
+  } catch {
+    return "";
+  }
+}
+
 export async function GET() {
   try {
     const { spreadsheetId } = getConfig();
@@ -45,12 +61,12 @@ export async function GET() {
 
     const result = await sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: "Products!A:L",
+      range: "Products!A:O",
     });
 
     const rows = result.data.values ?? [];
 
-    if (rows.length === 0) {
+    if (rows.length < 2) {
       return NextResponse.json([]);
     }
 
@@ -75,13 +91,26 @@ export async function GET() {
         mrp: record.mrp || "",
         stock: record.stock || "",
         unit: record.unit || "",
-        image: record.image || "",
+        image: record.image || ({
+          "PF001": "/products/premium-puppy-food.png",
+          "PP001": "/products/pet-shampoo.png",
+          "PA001": "/products/premium-dog-collar.png",
+        }[record.product_id] || ""),
         description: record.description || "",
         status: record.status || "",
+
+        // Shopping destinations
+        product_url: safeHttpsUrl(record.product_url),
+        retailer: record.retailer || "PETORA",
+        affiliate_url: safeHttpsUrl(record.affiliate_url),
       };
     });
 
-    return NextResponse.json(products);
+    return NextResponse.json(products, {
+      headers: {
+        "Cache-Control": "no-store",
+      },
+    });
   } catch (error) {
     console.error("GET /api/products failed:", error);
 
