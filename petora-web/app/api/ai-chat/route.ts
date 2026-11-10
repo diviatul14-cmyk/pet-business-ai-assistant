@@ -397,8 +397,74 @@ export async function POST(request: NextRequest) {
 
     const provider = (
       process.env.AI_PROVIDER ||
-      (process.env.AI_GATEWAY_API_KEY ? "gateway" : "ollama")
+      (process.env.GEMINI_API_KEY ? "gemini" : process.env.AI_GATEWAY_API_KEY ? "gateway" : "ollama")
     ).toLowerCase();
+
+    if (provider === "gemini") {
+      const apiKey = process.env.GEMINI_API_KEY;
+
+      if (!apiKey) {
+        return NextResponse.json(
+          { error: "Add GEMINI_API_KEY to the server environment." },
+          { status: 503 }
+        );
+      }
+
+      const response = await fetch(
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": apiKey,
+          },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: system }] },
+            contents: messages.map((message) => ({
+              role: message.role === "assistant" ? "model" : "user",
+              parts: [{ text: message.content }],
+            })),
+            generationConfig: {
+              temperature: 0.4,
+              maxOutputTokens: 900,
+            },
+          }),
+          cache: "no-store",
+          signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        }
+      );
+
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        console.error("PETORA Gemini API error:", response.status, data?.error?.message);
+        return NextResponse.json(
+          { error: "Google Gemini could not answer. Please check its API configuration." },
+          { status: 502 }
+        );
+      }
+
+      const answer = data?.candidates?.[0]?.content?.parts
+        ?.map((part: { text?: string }) => part.text || "")
+        .join("")
+        .trim();
+
+      if (!answer) {
+        console.error("PETORA Gemini returned no text:", data?.promptFeedback?.blockReason);
+        return NextResponse.json(
+          { error: "PETORA Gemini returned an empty answer. Please try again." },
+          { status: 502 }
+        );
+      }
+
+      return new Response(answer, {
+        headers: {
+          "Content-Type": "text/plain; charset=utf-8",
+          "Cache-Control": "no-cache, no-transform",
+          "X-Content-Type-Options": "nosniff",
+        },
+      });
+    }
 
     if (provider === "gateway") {
       if (!process.env.AI_GATEWAY_API_KEY) {
@@ -435,7 +501,7 @@ export async function POST(request: NextRequest) {
 
     if (provider !== "ollama") {
       return NextResponse.json(
-        { error: "AI_PROVIDER must be set to 'gateway' or 'ollama'." },
+        { error: "AI_PROVIDER must be set to 'gemini', 'gateway' or 'ollama'." },
         { status: 500 }
       );
     }
