@@ -1336,12 +1336,20 @@ export default function Home() {
         </nav>
 
 
-<a
-  href="/ai-assistant"
-  className="header-ai-button"
->
-  PETORA AI
-</a>
+        <div className="header-actions">
+          <a
+            href="/ai-assistant"
+            className="header-ai-button"
+          >
+            PETORA AI
+          </a>
+          <a
+            href="/match"
+            className="header-match-button"
+          >
+            PETORA Match
+          </a>
+        </div>
 
       </header>
 

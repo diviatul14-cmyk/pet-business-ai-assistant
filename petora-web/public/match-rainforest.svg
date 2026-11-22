@@ -1,0 +1,139 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1200" fill="none">
+  <defs>
+    <linearGradient id="sky" x1="960" y1="0" x2="960" y2="1200" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#09291f"/>
+      <stop offset=".48" stop-color="#174b36"/>
+      <stop offset="1" stop-color="#061a16"/>
+    </linearGradient>
+    <radialGradient id="opening" cx="0" cy="0" r="1" gradientTransform="matrix(0 700 -900 0 1010 270)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#c5a75f" stop-opacity=".42"/>
+      <stop offset=".34" stop-color="#6e9a5d" stop-opacity=".19"/>
+      <stop offset="1" stop-color="#0b241c" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="beam" x1="880" y1="80" x2="1230" y2="900" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#f8df9b" stop-opacity=".18"/>
+      <stop offset="1" stop-color="#f8df9b" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="leaf" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#91ad71"/>
+      <stop offset=".28" stop-color="#477a4f"/>
+      <stop offset=".72" stop-color="#21563a"/>
+      <stop offset="1" stop-color="#0d3025"/>
+    </linearGradient>
+    <linearGradient id="leafRib" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#bfd091" stop-opacity=".12"/>
+      <stop offset=".5" stop-color="#d5dda7" stop-opacity=".5"/>
+      <stop offset="1" stop-color="#bfd091" stop-opacity=".08"/>
+    </linearGradient>
+    <linearGradient id="mist" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#d8d8ae" stop-opacity=".02"/>
+      <stop offset=".5" stop-color="#c5d0ad" stop-opacity=".2"/>
+      <stop offset="1" stop-color="#c5d0ad" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="water" x1="960" y1="650" x2="960" y2="1200" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#3d7552" stop-opacity=".22"/>
+      <stop offset="1" stop-color="#061713" stop-opacity=".88"/>
+    </linearGradient>
+    <filter id="softBlur" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="30"/>
+    </filter>
+    <filter id="nearBlur" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="12"/>
+    </filter>
+    <mask id="monsteraOpenings">
+      <rect width="300" height="280" fill="#fff"/>
+      <ellipse cx="92" cy="141" rx="12" ry="31" transform="rotate(-24 92 141)" fill="#000"/>
+      <ellipse cx="125" cy="112" rx="12" ry="30" transform="rotate(-12 125 112)" fill="#000"/>
+      <ellipse cx="170" cy="116" rx="12" ry="31" transform="rotate(15 170 116)" fill="#000"/>
+      <ellipse cx="206" cy="151" rx="11" ry="28" transform="rotate(28 206 151)" fill="#000"/>
+      <ellipse cx="120" cy="181" rx="11" ry="23" transform="rotate(-20 120 181)" fill="#000"/>
+      <ellipse cx="176" cy="184" rx="11" ry="24" transform="rotate(18 176 184)" fill="#000"/>
+    </mask>
+    <g id="leafShape">
+      <path d="M0 0C28-12 76-20 112-9 135-3 155 9 174 31c-35 22-69 33-101 28C43 54 18 31 0 0Z" fill="url(#leaf)"/>
+      <path d="M4 1c54 13 107 23 162 29" stroke="url(#leafRib)" stroke-width="2"/>
+      <path d="M37 9 48 36M64 15 77 44M91 20l12 28m13-24 13 20M21 6 26 24" stroke="#c3d49a" stroke-opacity=".27" stroke-width="1.4"/>
+      <path d="M18 5c33 12 67 19 104 22" stroke="#e0e5b7" stroke-opacity=".12" stroke-width="1"/>
+    </g>
+    <g id="sprig">
+      <path d="M0 0C43 63 79 133 119 217" stroke="#274c31" stroke-width="8" stroke-linecap="round"/>
+      <use href="#leafShape" transform="translate(30 45) rotate(18) scale(.8)"/>
+      <use href="#leafShape" transform="translate(56 84) rotate(194) scale(.9)"/>
+      <use href="#leafShape" transform="translate(75 126) rotate(17) scale(.74)"/>
+      <use href="#leafShape" transform="translate(91 163) rotate(194) scale(.85)"/>
+    </g>
+    <g id="monstera">
+      <g mask="url(#monsteraOpenings)">
+        <path d="M149 270c-11-43-44-78-84-93 13-13 30-22 49-25-24-19-40-45-47-75 31 8 58 27 76 52-4-38 6-76 29-108 24 31 34 68 29 106 18-25 45-43 76-49-7 29-24 55-48 73 19 3 37 12 51 24-40 16-71 49-82 92l-4 10h-38l-7-7Z" fill="url(#leaf)"/>
+        <path d="M151 277c4-70 11-147 20-245m-16 111-68-87m79 71 65-82m-70 116-81-33m86 42 79-32m-84 64-61-4m65 8 65-3" stroke="url(#leafRib)" stroke-width="3"/>
+        <path d="M153 254c-4-71 2-145 16-207" stroke="#d7dca3" stroke-opacity=".15" stroke-width="1"/>
+      </g>
+    </g>
+    <g id="fern">
+      <path d="M0 0c52 55 96 119 132 195" stroke="#78915b" stroke-opacity=".75" stroke-width="3" stroke-linecap="round"/>
+      <path d="M21 28c21-15 41-15 59-5-18 17-35 20-59 5Zm20 28c23-18 43-21 62-12-17 19-36 24-62 12Zm22 31c24-17 45-18 62-7-20 19-39 22-62 7Zm20 33c23-15 43-14 59-2-21 16-39 18-59 2Zm19 32c19-12 37-9 49 2-17 12-33 12-49-2Z" fill="url(#leaf)" fill-opacity=".92"/>
+      <path d="M26 30c17-6 34-7 49-5M47 58c17-8 35-12 53-11M69 89c18-6 36-8 53-7M90 122c17-4 34-4 50 0M110 154c14-2 27 0 38 5" stroke="#c1d193" stroke-opacity=".27" stroke-width="1.2"/>
+    </g>
+  </defs>
+
+  <path fill="url(#sky)" d="M0 0h1920v1200H0z"/>
+  <path fill="url(#opening)" d="M0 0h1920v1200H0z"/>
+  <ellipse cx="1040" cy="710" fill="#c6a45c" fill-opacity=".12" filter="url(#softBlur)" rx="520" ry="180"/>
+  <ellipse cx="420" cy="650" fill="url(#mist)" filter="url(#softBlur)" rx="530" ry="92"/>
+  <ellipse cx="1420" cy="720" fill="url(#mist)" filter="url(#softBlur)" rx="610" ry="105"/>
+  <ellipse cx="960" cy="820" fill="#d2d7b4" fill-opacity=".065" filter="url(#nearBlur)" rx="720" ry="48"/>
+  <path d="m730 0 220 0 390 860-190 0L730 0Z" fill="url(#beam)"/>
+  <path d="m1000 0 110 0 320 790-105 0L1000 0Z" fill="url(#beam)" opacity=".55"/>
+  <path d="m550 0 78 0 232 590-69 0L550 0Z" fill="url(#beam)" opacity=".38"/>
+
+  <g opacity=".23" filter="url(#softBlur)">
+    <path d="M0 450c155-95 278-120 415-44 97-91 205-103 315-27 111-80 236-72 330 5 148-105 266-96 377-7 125-82 267-70 483 18v355H0V450Z" fill="#3b7148"/>
+  </g>
+  <path d="M0 570c225-100 400-74 615-30 220 44 380 20 595-40 230-65 465-50 710 25v675H0V570Z" fill="#163d2b" fill-opacity=".56"/>
+  <path d="M0 730c242-75 458-40 667 10 215 51 422 51 652-10 207-54 410-59 601-8v478H0V730Z" fill="url(#water)"/>
+  <path d="M0 800c235-45 475-21 676 28 265 64 428 47 692-5 215-43 389-38 552-12" stroke="#b3a36a" stroke-opacity=".12" stroke-width="3"/>
+  <path d="M150 920c230-25 375 1 540 34m350-15c204-34 407-38 605-14" stroke="#c1b276" stroke-opacity=".12" stroke-width="2"/>
+
+  <g opacity=".72">
+    <use href="#monstera" transform="translate(-104 480) rotate(-18) scale(1.38)"/>
+    <use href="#monstera" transform="translate(1740 510) rotate(17) scale(1.2)"/>
+  </g>
+  <g opacity=".64">
+    <use href="#fern" transform="translate(80 420) rotate(-16) scale(1.7)"/>
+    <use href="#fern" transform="translate(1770 360) rotate(162) scale(1.6)"/>
+    <use href="#fern" transform="translate(250 740) rotate(9) scale(1.2)"/>
+    <use href="#fern" transform="translate(1670 730) rotate(176) scale(1.25)"/>
+  </g>
+  <g opacity=".86">
+    <use href="#sprig" transform="translate(20 -8) rotate(-17) scale(2.2)"/>
+    <use href="#sprig" transform="translate(210 -45) rotate(9) scale(1.7)"/>
+    <use href="#sprig" transform="translate(1740 -12) rotate(188) scale(2.05)"/>
+    <use href="#sprig" transform="translate(1570 -40) rotate(168) scale(1.55)"/>
+  </g>
+  <g opacity=".66">
+    <use href="#leafShape" transform="translate(55 200) rotate(34) scale(1.8)"/>
+    <use href="#leafShape" transform="translate(130 338) rotate(7) scale(1.5)"/>
+    <use href="#leafShape" transform="translate(1870 230) rotate(154) scale(1.9)"/>
+    <use href="#leafShape" transform="translate(1795 402) rotate(175) scale(1.5)"/>
+    <use href="#leafShape" transform="translate(345 52) rotate(36) scale(1.25)"/>
+    <use href="#leafShape" transform="translate(1510 40) rotate(148) scale(1.3)"/>
+  </g>
+
+  <g opacity=".34" fill="#061a16">
+    <path d="M0 0h180v1200H0zM1735 0h185v1200h-185z"/>
+    <path d="M80 0h22v690H80zM148 0h15v600h-15zM1790 0h20v620h-20zM1850 0h15v700h-15z"/>
+  </g>
+
+  <g opacity=".48">
+    <use href="#monstera" transform="translate(-96 940) rotate(-25) scale(1.65)"/>
+    <use href="#monstera" transform="translate(1740 920) rotate(21) scale(1.52)"/>
+  </g>
+
+  <g opacity=".28" fill="#d2b56c">
+    <circle cx="280" cy="295" r="2"/><circle cx="410" cy="456" r="2.5"/>
+    <circle cx="621" cy="262" r="1.8"/><circle cx="1320" cy="370" r="2"/>
+    <circle cx="1504" cy="265" r="1.7"/><circle cx="1710" cy="510" r="2.4"/>
+    <circle cx="525" cy="683" r="1.6"/><circle cx="1195" cy="615" r="1.8"/>
+    <circle cx="920" cy="405" r="1.5"/><circle cx="1045" cy="540" r="1.8"/>
+  </g>
+</svg>
