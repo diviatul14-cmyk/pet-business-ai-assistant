@@ -1,0 +1,900 @@
+.appRoot {
+  --forest-ink: #edf4e9;
+  --forest-muted: #bdcbbd;
+  --forest-line: rgb(224 234 210 / 16%);
+  position: relative;
+  isolation: isolate;
+  min-height: 100vh;
+  overflow: hidden;
+  background: #071b16;
+  color: var(--forest-ink);
+}
+
+.appRoot::before,
+.appRoot::after {
+  position: fixed;
+  z-index: -1;
+  inset: 0;
+  content: "";
+  pointer-events: none;
+}
+
+.appRoot::before {
+  background:
+    linear-gradient(180deg, rgb(4 23 18 / 8%) 0%, rgb(5 29 21 / 7%) 48%, rgb(3 19 16 / 35%) 100%),
+    radial-gradient(ellipse at 51% 17%, rgb(208 185 128 / 17%), transparent 40%),
+    url("/match-rainforest.webp") center 46% / cover no-repeat;
+  background-color: #071b16;
+}
+
+.forestAtmosphere {
+  position: fixed;
+  z-index: -1;
+  inset: -12%;
+  background:
+    radial-gradient(ellipse at 28% 27%, rgb(205 192 137 / 10%), transparent 35%),
+    radial-gradient(ellipse at 74% 69%, rgb(62 125 82 / 12%), transparent 42%);
+  filter: blur(26px);
+  animation: mistShift 38s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+.appRoot::after {
+  background-image:
+    radial-gradient(circle, rgb(255 221 143 / 72%) 0 1px, transparent 2px),
+    radial-gradient(circle, rgb(213 185 108 / 58%) 0 1.2px, transparent 2.2px),
+    radial-gradient(circle, rgb(255 240 184 / 42%) 0 1px, transparent 2px);
+  background-position: 0 0, 43px 67px, 91px 24px;
+  background-size: 173px 191px, 241px 227px, 307px 283px;
+  opacity: 0.17;
+  mix-blend-mode: screen;
+  animation: fireflies 30s ease-in-out infinite alternate;
+}
+
+.forestHeader {
+  position: relative;
+  z-index: 1;
+  width: min(1180px, calc(100% - 56px));
+  margin: 0 auto;
+  padding: 28px 0 20px;
+  border-bottom: 1px solid rgb(231 238 218 / 12%);
+}
+
+.forestHeader::after {
+  position: absolute;
+  right: 3%;
+  bottom: -1px;
+  width: 23%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgb(223 189 112 / 72%), transparent);
+  content: "";
+}
+
+.forestHeader span {
+  color: #dfc47f;
+}
+
+.headerHomeButton {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  margin-bottom: 12px;
+  padding: 0 15px;
+  border: 1px solid rgb(226 211 165 / 45%);
+  border-radius: 999px;
+  background: rgb(10 48 35 / 76%);
+  color: #f0d48f;
+  font-size: 12px;
+  font-weight: 750;
+  text-decoration: none;
+  box-shadow: 0 8px 26px rgb(0 0 0 / 20%);
+  backdrop-filter: blur(18px);
+}
+
+.headerHomeButton:hover {
+  background: rgb(16 62 44 / 88%);
+}
+
+.headerHomeButton:focus-visible {
+  outline: 2px solid #e6ca82;
+  outline-offset: 3px;
+}
+
+.forestContent {
+  position: relative;
+  z-index: 1;
+  width: min(1180px, calc(100% - 56px));
+  min-height: calc(100vh - 206px);
+  margin: 0 auto;
+  padding: 34px 0 130px;
+}
+
+.forestPhoto {
+  border: 1px solid rgb(231 239 223 / 18%);
+  box-shadow: 0 32px 88px rgb(0 0 0 / 35%), 0 0 46px rgb(196 168 104 / 9%);
+  transform: translateZ(0);
+}
+
+.forestSurface {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgb(220 235 215 / 16%);
+  background: linear-gradient(132deg, rgb(223 235 211 / 13%), rgb(24 69 48 / 27%) 48%, rgb(4 29 24 / 42%));
+  box-shadow: 0 28px 76px rgb(0 0 0 / 25%), inset 0 1px rgb(255 255 255 / 11%);
+  backdrop-filter: blur(24px) saturate(138%);
+  -webkit-backdrop-filter: blur(24px) saturate(138%);
+}
+
+.forestSurface::before {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgb(238 220 168 / 38%), transparent);
+  content: "";
+  pointer-events: none;
+}
+
+.forestButton {
+  transition: transform 180ms ease, filter 180ms ease, box-shadow 180ms ease;
+}
+
+.forestButton:hover:not(:disabled) {
+  filter: brightness(1.1);
+  transform: translateY(-2px);
+}
+
+.forestButton:focus-visible,
+.forestNavButton:focus-visible {
+  outline: 2px solid #e6ca82;
+  outline-offset: 3px;
+}
+
+.forestPhotoFrame {
+  transform: translateZ(0);
+}
+
+.panelHeading {
+  position: relative;
+  margin: 0 0 20px;
+  padding: 0 0 19px;
+  border-bottom: 1px solid rgb(232 237 218 / 13%);
+}
+
+.panelKicker {
+  margin: 0 0 7px;
+  color: #dec98e;
+  font-size: 9px;
+  font-weight: 750;
+  letter-spacing: 0.22em;
+}
+
+.panelTitle {
+  margin: 0;
+  color: #f3efdf;
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: clamp(29px, 4vw, 38px);
+  font-weight: 500;
+  letter-spacing: -0.035em;
+  line-height: 1.12;
+}
+
+.panelSubtitle {
+  margin: 7px 0 0;
+  color: rgb(230 235 216 / 75%);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.emptyState {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  max-width: 660px;
+  margin: 14px auto 0;
+  padding: 42px 28px;
+  overflow: hidden;
+  border: 1px solid rgb(232 237 218 / 19%);
+  border-radius: 26px;
+  background: linear-gradient(135deg, rgb(230 239 218 / 11%), rgb(12 50 35 / 21%) 55%, rgb(5 30 25 / 34%));
+  box-shadow: 0 22px 65px rgb(0 0 0 / 19%), inset 0 1px rgb(255 255 255 / 9%);
+  text-align: center;
+  backdrop-filter: blur(25px) saturate(135%);
+  -webkit-backdrop-filter: blur(25px) saturate(135%);
+}
+
+.emptyState::before {
+  position: absolute;
+  top: -95px;
+  left: 50%;
+  width: 250px;
+  height: 170px;
+  border-radius: 50%;
+  background: rgb(225 194 122 / 11%);
+  content: "";
+  filter: blur(45px);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.emptyStateHero {
+  min-height: 300px;
+  align-content: center;
+  padding-block: 35px;
+}
+
+.emptyGlyph {
+  display: grid;
+  width: 58px;
+  height: 58px;
+  margin-bottom: 15px;
+  place-items: center;
+  border: 1px solid rgb(230 207 151 / 42%);
+  border-radius: 50%;
+  background: linear-gradient(145deg, rgb(231 207 146 / 18%), rgb(71 111 74 / 17%));
+  box-shadow: 0 0 32px rgb(205 177 107 / 12%), inset 0 1px rgb(255 255 255 / 12%);
+  color: #e8d59d;
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 28px;
+}
+
+.emptyTitle {
+  max-width: 480px;
+  margin: 2px 0 7px;
+  color: #f2efdf;
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: clamp(24px, 3.5vw, 31px);
+  font-weight: 500;
+  letter-spacing: -0.025em;
+  line-height: 1.24;
+}
+
+.emptyCopy {
+  max-width: 420px;
+  margin: 0;
+  color: rgb(227 234 217 / 78%);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.loadingState {
+  min-height: 150px;
+  align-content: center;
+  gap: 14px;
+}
+
+.loadingOrb {
+  width: 28px;
+  height: 28px;
+  border: 1px solid rgb(223 200 142 / 60%);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: orbTurn 1.8s linear infinite;
+}
+
+.panelEmpty {
+  display: flex;
+  min-height: 126px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 22px;
+  border: 1px solid rgb(232 237 218 / 10%);
+  border-radius: 18px;
+  background: rgb(231 239 220 / 5%);
+  color: rgb(225 233 215 / 78%);
+  text-align: center;
+}
+
+.panelEmpty p {
+  max-width: 430px;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.emptyStateCompact {
+  min-height: 210px;
+  margin: 0;
+  padding: 28px;
+  background: linear-gradient(135deg, rgb(230 239 218 / 8%), rgb(12 50 35 / 14%) 58%, rgb(5 30 25 / 20%));
+}
+
+.emptyGlyphSmall {
+  color: #e1cc91;
+  font-size: 25px;
+  line-height: 1;
+}
+
+.matchGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
+  gap: 16px;
+}
+
+.matchCard {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0;
+  border: 1px solid rgb(230 238 218 / 16%);
+  border-radius: 20px;
+  background: linear-gradient(145deg, rgb(218 233 211 / 11%), rgb(4 28 23 / 34%));
+  color: #f3f0e2;
+  text-align: left;
+  box-shadow: 0 18px 45px rgb(0 0 0 / 22%), inset 0 1px rgb(255 255 255 / 7%);
+  backdrop-filter: blur(18px);
+}
+
+.matchCardMedia {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 1.52;
+  background: linear-gradient(145deg, #274a35, #0b281f);
+}
+
+.matchCardPhoto {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 450ms cubic-bezier(.2,.65,.25,1);
+}
+
+.matchCard:hover .matchCardPhoto {
+  transform: scale(1.035);
+}
+
+.matchCardMedia::after {
+  position: absolute;
+  inset: 38% 0 0;
+  background: linear-gradient(180deg, transparent, rgb(2 19 14 / 44%));
+  content: "";
+  pointer-events: none;
+}
+
+.matchCardPlaceholder {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  color: #dfc987;
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 48px;
+}
+
+.matchBadge {
+  position: absolute;
+  z-index: 1;
+  top: 12px;
+  left: 12px;
+  padding: 6px 9px;
+  border: 1px solid rgb(242 222 167 / 35%);
+  border-radius: 999px;
+  background: rgb(5 30 23 / 55%);
+  color: #f0dfb0;
+  font-size: 8px;
+  font-weight: 750;
+  letter-spacing: 0.15em;
+  backdrop-filter: blur(12px);
+}
+
+.matchCardDetails {
+  display: grid;
+  gap: 5px;
+  padding: 15px 16px 16px;
+}
+
+.matchCardDetails strong {
+  color: #f3efdf;
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 20px;
+  font-weight: 500;
+}
+
+.matchCardDetails > span:nth-child(2) {
+  color: rgb(220 231 214 / 74%);
+  font-size: 11px;
+}
+
+.matchCardLink {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 9px;
+  padding-top: 10px;
+  border-top: 1px solid rgb(231 238 218 / 11%);
+  color: #e2cb8d;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+}
+
+.conversationList {
+  display: grid;
+  gap: 9px;
+}
+
+.conversationRow {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  gap: 14px;
+  padding: 12px;
+  border: 1px solid rgb(232 237 218 / 11%);
+  border-radius: 17px;
+  background: linear-gradient(110deg, rgb(230 239 218 / 8%), rgb(4 29 24 / 17%));
+  color: #f1efdf;
+  text-align: left;
+}
+
+.conversationAvatar,
+.conversationAvatarFallback,
+.chatPartnerPhoto,
+.chatPartnerPhotoFallback {
+  width: 54px;
+  height: 54px;
+  flex: 0 0 54px;
+  overflow: hidden;
+  border: 1px solid rgb(232 216 163 / 36%);
+  border-radius: 50%;
+  background: linear-gradient(145deg, rgb(223 197 132 / 17%), rgb(28 78 52 / 48%));
+  box-shadow: 0 0 0 4px rgb(230 239 218 / 4%), 0 7px 19px rgb(0 0 0 / 22%);
+  object-fit: cover;
+}
+
+.conversationAvatarFallback,
+.chatPartnerPhotoFallback {
+  display: grid;
+  place-items: center;
+  color: #e4d096;
+  font-size: 22px;
+}
+
+.conversationDetails {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 4px;
+}
+
+.conversationDetails strong {
+  overflow: hidden;
+  color: #f3efdf;
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 18px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.conversationDetails > span {
+  overflow: hidden;
+  color: rgb(221 231 215 / 69%);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.conversationArrow {
+  padding: 0 8px;
+  color: #dfc786;
+  font-size: 18px;
+}
+
+.conversationRow:hover {
+  border-color: rgb(231 212 158 / 26%);
+  background: linear-gradient(110deg, rgb(230 239 218 / 12%), rgb(4 29 24 / 22%));
+}
+
+.chatPartnerHeader {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin: 0 0 12px;
+  padding: 0 0 17px;
+  border-bottom: 1px solid rgb(232 237 218 / 13%);
+}
+
+.chatPartner {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 14px;
+}
+
+.chatPartnerPhoto,
+.chatPartnerPhotoFallback {
+  width: 62px;
+  height: 62px;
+  flex-basis: 62px;
+}
+
+.chatPartnerDetails {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.chatPartnerDetails strong {
+  overflow: hidden;
+  color: #f3efdf;
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 21px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chatPartnerDetails > span:nth-child(2) {
+  color: rgb(221 231 215 / 71%);
+  font-size: 11px;
+}
+
+.matchStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 3px;
+  color: #e3cb8c;
+  font-size: 8px;
+  font-weight: 750;
+  letter-spacing: 0.14em;
+}
+
+.matchStatus i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #d7bc73;
+  box-shadow: 0 0 9px rgb(220 191 117 / 65%);
+}
+
+.messageBubble {
+  max-width: min(76%, 560px);
+  padding: 12px 15px;
+  border: 1px solid rgb(230 237 220 / 15%);
+  border-radius: 18px;
+  color: #f0f1e4;
+  font-size: 13px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 17%);
+  backdrop-filter: blur(16px);
+}
+
+.messageBubbleOwn {
+  border-color: rgb(235 213 155 / 24%);
+  border-bottom-right-radius: 6px;
+  background: linear-gradient(145deg, rgb(85 119 74 / 59%), rgb(24 77 51 / 67%));
+}
+
+.messageBubbleIncoming {
+  border-bottom-left-radius: 6px;
+  background: linear-gradient(145deg, rgb(233 237 220 / 13%), rgb(218 230 211 / 7%));
+}
+
+.chatTimeline {
+  scrollbar-color: rgb(206 188 130 / 42%) transparent;
+  scrollbar-width: thin;
+  overscroll-behavior: contain;
+  scroll-behavior: smooth;
+}
+
+.chatComposer {
+  transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.chatComposer:focus-within {
+  border-color: rgb(225 199 135 / 58%) !important;
+  box-shadow: 0 0 0 3px rgb(225 199 135 / 9%);
+}
+
+.chatComposer input:focus-visible {
+  outline: 2px solid rgb(225 199 135 / 48%) !important;
+  outline-offset: 1px;
+}
+
+.navIcon {
+  display: grid;
+  width: 23px;
+  height: 23px;
+  place-items: center;
+}
+
+.navIcon svg {
+  width: 21px;
+  height: 21px;
+}
+
+.profileRow {
+  margin: 8px 0;
+  padding: 12px;
+  border: 1px solid rgb(232 237 218 / 11%);
+  background: linear-gradient(110deg, rgb(230 239 218 / 7%), rgb(4 29 24 / 13%));
+}
+
+.forestBottomNav {
+  border: 1px solid rgb(228 238 219 / 18%) !important;
+  background: linear-gradient(145deg, rgb(10 42 32 / 94%), rgb(5 27 23 / 96%)) !important;
+  box-shadow: 0 18px 55px rgb(0 0 0 / 46%), inset 0 1px rgb(255 255 255 / 8%) !important;
+  backdrop-filter: blur(24px);
+}
+
+.forestNavButton {
+  color: #b7c8b6 !important;
+  transition: color 180ms ease, background 180ms ease, transform 180ms ease;
+}
+
+.forestNavButtonActive {
+  color: #f0d48f !important;
+  background: linear-gradient(145deg, rgb(199 167 95 / 19%), rgb(101 127 79 / 13%)) !important;
+  box-shadow: inset 0 0 0 1px rgb(219 191 123 / 15%);
+}
+
+.animalFormPage {
+  position: relative;
+  isolation: isolate;
+  min-height: 100vh;
+  padding: 38px 20px;
+  overflow: hidden;
+  background: #071b16;
+  color: #edf4e9;
+}
+
+.animalFormPage::before {
+  position: fixed;
+  z-index: -1;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgb(4 23 18 / 31%), rgb(3 19 16 / 55%)),
+    url("/match-rainforest.webp") center / cover no-repeat;
+  content: "";
+}
+
+.animalFormCard {
+  width: min(760px, 100%);
+  margin: 0 auto;
+  padding: clamp(22px, 4vw, 42px);
+  border: 1px solid rgb(220 235 215 / 16%);
+  border-radius: 28px;
+  background: linear-gradient(132deg, rgb(223 235 211 / 13%), rgb(24 69 48 / 27%) 48%, rgb(4 29 24 / 42%));
+  box-shadow: 0 30px 90px rgb(0 0 0 / 31%), inset 0 1px rgb(255 255 255 / 11%);
+  backdrop-filter: blur(26px) saturate(138%);
+  -webkit-backdrop-filter: blur(26px) saturate(138%);
+}
+
+.animalFormCard h1,
+.animalFormCard h2 {
+  color: #edf4e9 !important;
+}
+
+.animalFormCard p {
+  color: #bdcbbd !important;
+}
+
+.animalFormCard label {
+  display: block;
+  margin-top: 5px;
+  color: #e6eadb !important;
+  font-weight: 650;
+}
+
+.animalFormCard input,
+.animalFormCard select,
+.animalFormCard textarea {
+  border: 1px solid rgb(225 235 218 / 19%) !important;
+  border-radius: 13px !important;
+  background: rgb(3 23 18 / 54%) !important;
+  color: #f4f4e9 !important;
+  accent-color: #d3b76d;
+  color-scheme: dark;
+}
+
+.animalFormCard input::placeholder,
+.animalFormCard textarea::placeholder {
+  color: #a7b7a9;
+}
+
+.animalFormCard input:focus,
+.animalFormCard select:focus,
+.animalFormCard textarea:focus {
+  border-color: rgb(220 190 117 / 75%) !important;
+  outline: 2px solid rgb(220 190 117 / 18%);
+}
+
+.profileCompletion {
+  border: 1px solid rgb(226 236 217 / 12%) !important;
+  background: rgb(3 23 18 / 38%) !important;
+}
+
+.profileGallery {
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)) !important;
+}
+
+.profileGallery img {
+  border: 1px solid rgb(230 237 222 / 18%);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 24%);
+}
+
+.profileGallery > div {
+  overflow: hidden;
+  border-radius: 13px;
+}
+
+.formSubmit {
+  border: 1px solid rgb(237 218 162 / 60%) !important;
+  background: linear-gradient(135deg, #ddc47d, #b99550) !important;
+  color: #183527 !important;
+  box-shadow: 0 10px 28px rgb(188 154 77 / 24%);
+}
+
+.formBackButton {
+  margin-bottom: 20px;
+  padding: 10px 14px;
+  border: 1px solid rgb(225 235 218 / 17%);
+  border-radius: 12px;
+  background: rgb(3 23 18 / 42%);
+  color: #e8d59c;
+  cursor: pointer;
+}
+
+.formError {
+  color: #ffc0ae !important;
+}
+
+.formSuccess {
+  color: #c1e3be !important;
+}
+
+.formStatusCard {
+  width: min(680px, 100%);
+  margin: 0 auto;
+  padding: 24px;
+  border: 1px solid rgb(220 235 215 / 16%);
+  border-radius: 22px;
+  background: linear-gradient(132deg, rgb(223 235 211 / 13%), rgb(24 69 48 / 27%) 48%, rgb(4 29 24 / 42%));
+  box-shadow: 0 30px 90px rgb(0 0 0 / 31%);
+  backdrop-filter: blur(26px) saturate(138%);
+}
+
+.forestContent {
+  padding: 34px 0 130px !important;
+}
+
+@keyframes fireflies {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(8px, -10px, 0); }
+}
+
+@keyframes mistShift {
+  from { transform: translate3d(-1.5%, -0.5%, 0); }
+  to { transform: translate3d(1.5%, 0.75%, 0); }
+}
+
+@keyframes orbTurn {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 720px) {
+  .forestHeader {
+    width: calc(100% - 34px);
+    padding: 21px 0 16px !important;
+  }
+
+  .forestContent {
+    width: calc(100% - 30px);
+    min-height: calc(100svh - 160px);
+    padding: 26px 0 120px !important;
+  }
+
+  .forestPhotoFrame {
+    height: min(59svh, 560px) !important;
+    min-height: 340px !important;
+  }
+
+  .forestBottomNav {
+    bottom: max(10px, env(safe-area-inset-bottom)) !important;
+    width: calc(100% - 20px) !important;
+    height: 72px !important;
+    border-radius: 22px !important;
+    padding: 5px 4px !important;
+  }
+
+  .forestNavButton {
+    min-width: 0;
+    font-size: 9px !important;
+  }
+
+  .forestSurface {
+    padding: 21px !important;
+    border-radius: 22px !important;
+  }
+
+  .chatPartnerHeader {
+    align-items: flex-start;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .chatPartner {
+    flex: 1 1 190px;
+    gap: 10px;
+  }
+
+  .chatPartnerPhoto,
+  .chatPartnerPhotoFallback {
+    width: 49px;
+    height: 49px;
+    flex-basis: 49px;
+  }
+
+  .messageBubble {
+    max-width: 88%;
+    padding: 11px 13px;
+  }
+
+  .chatComposer button {
+    padding: 12px 14px !important;
+  }
+
+  .matchGrid {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 205px), 1fr));
+    gap: 12px;
+  }
+
+  .animalFormPage {
+    padding: 18px 12px;
+  }
+}
+
+@media (max-width: 420px) {
+  .forestPhotoFrame {
+    height: 53svh !important;
+    min-height: 320px !important;
+  }
+
+  .profileGallery {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .forestAtmosphere,
+  .appRoot::after {
+    animation: none;
+  }
+
+  .loadingOrb {
+    animation: none;
+  }
+
+  .forestButton,
+  .forestNavButton,
+  .matchCardPhoto {
+    transition: none;
+  }
+
+  .matchCard:hover .matchCardPhoto {
+    transform: none;
+  }
+}
+
+@media (update: slow), (max-width: 720px) {
+  .forestAtmosphere,
+  .appRoot::after,
+  .loadingOrb {
+    animation: none;
+  }
+
+  .forestButton,
+  .forestNavButton,
+  .matchCardPhoto,
+  .chatComposer {
+    transition: none;
+  }
+
+  .matchCard:hover .matchCardPhoto {
+    transform: none;
+  }
+}

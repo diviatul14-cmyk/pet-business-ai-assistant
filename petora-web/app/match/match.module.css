@@ -1,0 +1,289 @@
+
+.authPage {
+  min-height: 100vh;
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 20px;
+  background: linear-gradient(145deg, #f5f7ef, #e9f0e6);
+  color: #24382a;
+}
+
+.authCard {
+  width: 100%;
+  max-width: 490px;
+  box-sizing: border-box;
+  padding: 42px;
+  border: 1px solid #e5ebdf;
+  border-radius: 25px;
+  background: #ffffff;
+  box-shadow: 0 22px 65px rgba(35, 58, 39, 0.11);
+}
+
+.authBrand {
+  display: block;
+  margin-bottom: 30px;
+  color: #315e3d;
+  font-size: 19px;
+  font-weight: 850;
+  letter-spacing: 2px;
+  text-align: center;
+  text-decoration: none;
+}
+
+.authBrand span {
+  color: #83a66b;
+}
+
+.authEyebrow {
+  margin-bottom: 12px;
+  color: #66875d;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.authDescription {
+  margin: 0 0 28px;
+  color: #788579;
+  font-size: 14px;
+  line-height: 1.7;
+  text-align: center;
+}
+
+.authTabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+  margin-bottom: 25px;
+  padding: 5px;
+  border-radius: 12px;
+  background: #f1f4ee;
+}
+
+.authTabs button {
+  padding: 12px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #68776a;
+  font-size: 14px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.authTabs .activeTab {
+  background: #ffffff;
+  color: #315e3d;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.authForm {
+  display: flex;
+  flex-direction: column;
+  gap: 17px;
+}
+
+.authForm label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: #35473a;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.authForm input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 14px 15px;
+  border: 1px solid #dfe7dc;
+  border-radius: 11px;
+  outline: none;
+  background: #fbfcfa;
+  color: #26382b;
+  font-size: 15px;
+}
+
+.authForm input:focus {
+  border-color: #70966c;
+  box-shadow: 0 0 0 3px rgba(112, 150, 108, 0.13);
+}
+
+.authSubmit {
+  width: 100%;
+  margin-top: 5px;
+  padding: 15px;
+  border: 0;
+  border-radius: 11px;
+  background: #477b50;
+  color: white;
+  font-size: 15px;
+  font-weight: 750;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.authSubmit:hover {
+  background: #315e3d;
+  transform: translateY(-1px);
+}
+
+.authSubmit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.magicLink {
+  display: block;
+  width: 100%;
+  margin-top: 15px;
+  padding: 12px;
+  border: 1px solid #dfe7dc;
+  border-radius: 10px;
+  background: white;
+  color: #477b50;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.authSuccess,
+.authError {
+  margin-top: 17px;
+  padding: 13px;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.authSuccess {
+  background: #edf6eb;
+  color: #315e3d;
+}
+
+.authError {
+  background: #fff0ed;
+  color: #ae4135;
+}
+
+.authFooter {
+  margin-top: 26px;
+  color: #859087;
+  font-size: 12px;
+  line-height: 1.7;
+  text-align: center;
+}
+
+@media (max-width: 520px) {
+  .authPage {
+    padding: 22px 14px;
+  }
+
+  .authCard {
+    padding: 29px 21px;
+    border-radius: 19px;
+  }
+}
+
+.authPage {
+  background:
+    linear-gradient(rgba(8, 35, 22, 0.22), rgba(8, 35, 22, 0.22)),
+    url("/petora-match-clean-background.png")center center / cover no-repeat fixed;
+  min-height: 100vh;
+}
+
+.authCard {
+  position: relative;
+  z-index: 1;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.28);
+}
+
+/* PETORA Match — compact single-screen layout */
+
+@media (min-width: 768px) {
+  .authPage {
+    min-height: 100vh;
+    height: 100vh;
+    box-sizing: border-box;
+    padding: 12px 20px;
+    overflow: hidden;
+    background-position: center center;
+    background-size: cover;
+  }
+
+  .authCard {
+    width: 100%;
+    max-width: 440px;
+    max-height: calc(100vh - 24px);
+    padding: 18px 30px;
+    border-radius: 22px;
+    overflow-y: auto;
+  }
+
+  .authBrand {
+    margin-bottom: 10px;
+    font-size: 16px;
+  }
+
+  .authEyebrow {
+    margin-bottom: 5px;
+    font-size: 10px;
+  }
+
+  .authCard h1 {
+    margin: 6px 0;
+    font-size: 24px;
+    line-height: 1.2;
+  }
+
+  .authDescription {
+    margin-bottom: 12px;
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .authTabs {
+    margin-bottom: 12px;
+  }
+
+  .authTabs button {
+    padding: 8px;
+  }
+
+  .authForm {
+    gap: 9px;
+  }
+
+  .authForm label {
+    gap: 4px;
+    font-size: 12px;
+  }
+
+  .authForm input {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  .authSubmit {
+    padding: 11px;
+    font-size: 13px;
+  }
+
+  .magicLink {
+    margin-top: 9px;
+    padding: 9px;
+    font-size: 12px;
+  }
+
+  .authFooter {
+    margin-top: 12px;
+    font-size: 11px;
+  }
+}
